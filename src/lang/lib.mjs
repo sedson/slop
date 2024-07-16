@@ -1,0 +1,69 @@
+/**
+ * @file Provide basic library functions for the tiny lisp.
+ */ 
+
+export const utils = {
+  'join': (...args) => args.join(''),
+  'print': (...args) => console.log(...args),
+  'len': (...args) => {
+    if (args.length === 1) {
+      return args[0].length !== undefined ? args[0].length : 0;
+    }
+    return args.length;
+  },
+  '_': (...args) => args[args.length - 1] || null,
+  'ls': (...args) => args,
+  'call': (fn, ...args) => fn(...args),
+  'dict': () => {
+    return {a: 'A', b: 'B', c: { final: 10} };
+  },
+  'machine': () => {
+    let ct = 0;
+    return { next: () => ct ++ };
+  }
+
+};
+
+
+export const math = {
+  '*': (...args) => args.reduce((a, b) => a * b, 1),
+  '+': (...args) => args.reduce((a, b) => a + b, 0),
+  '-': (...args) => (args.length === 1) ? -args[0] : args.slice(1).reduce((a, b) => a - b, args[0]),
+  '/': (...args) => args.slice(1).reduce((a, b) => a / b, args[0]),
+  'max': (...args) => Math.max(...args),
+  'min': (...args) => Math.min(...args),
+  'clamp': (a, mn = 0, mx = 1) => Math.min(Math.max(a, mn), mx),
+  'sin': (a) => Math.sin(a),
+  'cos': (a) => Math.cos(a),
+  '%': (a, b) => a % b,
+  '=': (a, b) => a === b,
+  '>': (a, b) => a > b,
+  '<': (a, b) => a < b,
+  '<=': (a, b) => a <= b,
+  '>=': (a, b) => a >= b,
+  'rand': () => Math.random(),
+}
+
+export const lists = {
+  '..': (a, b) => {
+    console.log({a,b})
+    let list = [];
+    for (let i = a; i < b; i++) {
+      list.push(i);
+    }
+    return list;
+  },
+
+  'map': (ls, fn) => ls.map(x => fn(x)),
+  'filter': (ls, fn) => ls.filter(x => fn(x)),
+  'push': (ls, val) => {
+    ls.push(val);
+    return val;
+  },
+  'first': (ls) => ls[0] ?? null,
+  'rest': (ls) => ls.slice(1),
+  'nth': (ls, n) => ls[n] || 0,
+  'has': (ls, member) => ls.indexOf(member) > -1,
+  'fill-with': (len, val) => new Array(len).fill(val),
+
+}
