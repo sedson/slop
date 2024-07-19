@@ -14,14 +14,6 @@ export const utils = {
   '_': (...args) => args[args.length - 1] || null,
   'ls': (...args) => args,
   'call': (fn, ...args) => fn(...args),
-  'dict': () => {
-    return {a: 'A', b: 'B', c: { final: 10} };
-  },
-  'machine': () => {
-    let ct = 0;
-    return { next: () => ct ++ };
-  }
-
 };
 
 
@@ -35,6 +27,10 @@ export const math = {
   'clamp': (a, mn = 0, mx = 1) => Math.min(Math.max(a, mn), mx),
   'sin': (a) => Math.sin(a),
   'cos': (a) => Math.cos(a),
+  'sqrt': (a) => Math.sqrt(a),
+  'floor': (a) => Math.floor(a),
+  'round': (a) => Math.round(a),
+  'ciel': (a) => Math.ciel(a),
   '%': (a, b) => a % b,
   '=': (a, b) => a === b,
   '>': (a, b) => a > b,
@@ -42,11 +38,15 @@ export const math = {
   '<=': (a, b) => a <= b,
   '>=': (a, b) => a >= b,
   'rand': () => Math.random(),
+  'hex': (a) => (a & 0xff).toString(16),
+  '<<': (a, b) => a << b,
+  '>>': (a, b) => a >> b,
+  '&': (a, b) => a & b,
+  '|': (a, b) => a | b,
 }
 
 export const lists = {
   '..': (a, b) => {
-    console.log({a,b})
     let list = [];
     for (let i = a; i < b; i++) {
       list.push(i);
@@ -55,7 +55,9 @@ export const lists = {
   },
 
   'map': (ls, fn) => ls.map(x => fn(x)),
+  'for-each': (ls, fn) => ls.forEach(x => fn(x)),
   'filter': (ls, fn) => ls.filter(x => fn(x)),
+  'list-join': (ls, delim = " ") => ls.join(delim),
   'push': (ls, val) => {
     ls.push(val);
     return val;
@@ -65,5 +67,4 @@ export const lists = {
   'nth': (ls, n) => ls[n] || 0,
   'has': (ls, member) => ls.indexOf(member) > -1,
   'fill-with': (len, val) => new Array(len).fill(val),
-
 }

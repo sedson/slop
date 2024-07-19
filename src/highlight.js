@@ -5,25 +5,28 @@ const span = (text, c) => {
   return s;
 }
 
-// make white space
 const pad = (n, str) => new Array(n + 1).join(str);
-
-// 
 const space = (n) => pad(n, ' ');
 
-// make a line break
-const br = () => document.createElement('br');
+const countLinebreaks = (str) => {
+  let count = 0;
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === '\n') count += 1;
+  }
+  return count;
+}
 
 
 /**
  * From some source code, a list of gererated tokens, and a list of keywords.
  * @param {string} sourceString
  * @param {array<Token>} tokens
- * @param {array<String>} keywords
- * @return {string}
+ * @param {Set<String>} keywords
+ * @param {number} caretLine
+ * @param {array<number>} selection
+ * @return {Array<HTMLElement}
  */
-export function highlight(sourceString, tokens, keywords) {
-
+export function highlight(sourceString, tokens, keywords, caretLine, selection) {
   // track the line number
   let lineNo = 0;
 
@@ -37,13 +40,11 @@ export function highlight(sourceString, tokens, keywords) {
     return '';
   }
 
-
   const leadingSpace = tokens[0].range[0];
   currentLine.append(space(leadingSpace));
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
-
 
     if (token.type === 'eof') {
       const spaceToEnd = token.line - lineNo;
@@ -52,8 +53,7 @@ export function highlight(sourceString, tokens, keywords) {
 
     if (token.line !== lineNo) {
 
-      lines.push(currentLine.outerHTML);
-
+      lines.push(currentLine);
 
       let linebreaks = 0;
 
@@ -61,7 +61,7 @@ export function highlight(sourceString, tokens, keywords) {
         lineNo++;
         linebreaks++;
         if (lineNo < token.line) {
-          lines.push(span(' ', 'line').outerHTML);
+          lines.push(span(' ', 'line'));
         }
       }
 
@@ -77,7 +77,7 @@ export function highlight(sourceString, tokens, keywords) {
       tokenSpan.classList.add(`depth-${token.depth % 5}`);
     }
 
-    if (keywords.includes(token.str)) {
+    if (keywords.has(token.str)) {
       tokenSpan.classList.add('keyword');
     }
 
@@ -96,6 +96,12 @@ export function highlight(sourceString, tokens, keywords) {
 
   }
 
-  lines.push(currentLine.outerHTML);
-  return lines.join('');
+  lines.push(currentLine);
+
+  const totalLines = countLinebreaks(sourceString);
+  while (lines.length <= totalLines) {
+    lines.push(span('', 'line'));
+  }
+
+  return lines;
 }

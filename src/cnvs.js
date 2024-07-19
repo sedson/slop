@@ -5,7 +5,7 @@
 import { BlendModes } from './constants.js';
 
 export class Cnvs {
-  constructor(w, h) {
+  constructor(w, h, label) {
     this.w = w;
     this.h = h;
     this.canvas = document.createElement('canvas');
@@ -28,10 +28,34 @@ export class Cnvs {
     this.ctx.putImageData(imgData, 0, 0);
   }
 
+  static blend(mode, a, b, alpha = 1) {
+    console.log(mode, a, b, alpha)
+    if (!BlendModes[mode]) {
+      throw new Error('no blend mode: ', mode);
+    }
+
+    const w = Math.max(a.w, b.w);
+    const h = Math.max(a.h, b.h);
+
+    const newCanvas = new Cnvs(w, h);
+    newCanvas.img(a, 0, 0);
+    newCanvas.blend(BlendModes[mode]);
+    newCanvas.alpha(alpha);
+    newCanvas.img(b, 0, 0);
+    return newCanvas;
+
+  }
+
 
   rect(x, y, w, h, col) {
     this.ctx.fillStyle = col;
     this.ctx.fillRect(x, y, w, h);
+    return this;
+  }
+
+  fill(col) {
+    this.ctx.fillStyle = col;
+    this.ctx.fillRect(0, 0, this.w, this.h);
     return this;
   }
 
@@ -40,6 +64,16 @@ export class Cnvs {
     this.ctx.beginPath();
     this.ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
     this.ctx.fill();
+    return this;
+  }
+
+  ellipseStroke(x, y, rx, ry, col, width = 1) {
+    this.ctx.strokeStyle = col;
+    this.ctx.lineWidth = width;
+    this.ctx.lineCap = 'round';
+    this.ctx.beginPath();
+    this.ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
+    this.ctx.stroke();
     return this;
   }
 
@@ -83,5 +117,17 @@ export class Cnvs {
 
     this.iteratePixels(noise);
     return this;
+  }
+
+  line(x1, y1, x2, y2, color, width = 1) {
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = width;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x1, y1);
+    this.ctx.lineTo(x2, y2);
+  }
+
+  _customFormat() {
+    return `CANVAS [ ${this.w} by ${this.h} ]`;
   }
 }

@@ -9,6 +9,8 @@ export function format(item) {
     return `[ ${item.map(format).join(', ')} ]`;
   } else if (typeof item === "string") {
     return `"${item}"`;
+  } else if (item._customFormat) {
+    return item._customFormat()
   } else {
     return item;
   }

@@ -16,10 +16,3 @@ export const BlendModes = {
   color: 'color',
   luminosity: 'luminosity'
 };
-
-export const Operators = {
-  ':': BlendModes.default,
-  '*': BlendModes.multiply,
-  '+': BlendModes.screen,
-  '~': BlendModes.overlay,
-}

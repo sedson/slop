@@ -11,17 +11,9 @@
 
 :root {
   font-size: 14px;
-  --background: rgb(46, 46, 46);
-  --comments: rgb(121, 121, 121);
-  --text: rgb(214, 214, 214);
-  --yellow: rgb(229, 181, 103);
-  --green: rgb(180, 210, 115);
-  --orange: rgb(232, 125, 62);
-  --purple: rgb(158, 134, 200);
-  --pink: rgb(176, 82, 121);
-  --blue: rgb(108, 153, 187);
-  --line: 1px solid var(--text);
-  --line: 1px solid rgb(80, 80, 80);
+  --background: #fdf6e3;
+  --text: #586e75;
+  --line: 1px solid rgb(220, 220, 200);
 }
 body {
   background: var(--background);
@@ -41,12 +33,19 @@ body {
   z-index: 20;
   width: 100%;
   display: flex;
+  flex-flow: row;
   align-items: center;
   padding: 0 0.5em;
 }
 
 .inline-list {
   list-style: none;
+  display: flex;
+  flex-flow: row
+}
+
+.inline-list > * {
+  margin-right: 1em;
 }
 
 .fs {
@@ -59,7 +58,6 @@ body {
   display: flex;
 }
 .h-split > .half {
-  width: 50%;
   height: 100%;
 }
 .v-split {
@@ -77,4 +75,8 @@ body {
 
 .artboard {
   background: silver;
+}
+
+.border-right {
+  border-right: var(--line);
 }

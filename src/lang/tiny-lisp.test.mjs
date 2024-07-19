@@ -100,13 +100,6 @@ Test('Funcs as params', (assert) => {
 
     ((greet "hey") "there")
   `.trim();
-
+  
   assert.equal(test(src, context), 'hey there', 'Function as param');
 });
-
-
-lang._identifier('abc');
-lang._identifier('canvas.width');
-lang._identifier('$dict.sub.value');
-
-console.log(lang._nested({a: 'aa', b: {inner: 'bb'}}, ['b', 'inner']));

@@ -12,8 +12,10 @@ const is = {
   dot: (char) => char === '.',
   number: (char) => is.digit(char) || is.dot(char),
   quote: (char) => char === `"`,
+  singlequote: (char) => char === `'`,
   underscore: (char) => char === '_',
   dollar: (char) => char === '$',
+  at: (char) => char === '@',
   tilde: (char) => char === '~',
   colon: (char) => char === ':',
   dash: (char) => char === '-',
@@ -28,6 +30,7 @@ export const types = {
   rparen: 'rparen',
   num: 'num',
   str: 'str',
+
   identifier: 'identifier',
   unknown: 'unknown',
   literal: 'literal',
@@ -57,6 +60,7 @@ export const core = {
 
 // Export the keywords.
 export const keywords = Object.keys({ ...core, ...reservedValues });
+
 
 export class StringReader {
   constructor(str) {
@@ -126,7 +130,7 @@ export function tokenize(input) {
     }
 
     if (is.rightParen(char)) {
-      const t = token(types.rparen, grab(), '(', [tokenStart, reader.loc], line, colStart);
+      const t = token(types.rparen, grab(), ')', [tokenStart, reader.loc], line, colStart);
       t.depth = parenDepth;
       tokens.push(t);
       parenDepth -= 1;
@@ -147,6 +151,14 @@ export function tokenize(input) {
       }
       next();
       push(types.str, grab(1), grab());
+      continue;
+    }
+
+    if (is.singlequote(char)) {
+      while(is.word(peek()) && !reader.done()){
+        next();
+      }
+      push(types.str, grab().slice(1), grab());
       continue;
     }
 
@@ -418,13 +430,12 @@ export function interpret(expression, context) {
   // Interpret each element of the list.
   const list = expression.map(n => interpret(n, context));
 
-  const [f, ...args] = list;
-
   // If function, apply to list.
-  if (f instanceof Function) {
-
-    return f(...args);
+  if (list[0] instanceof Function) {
+    return list[0](...list.slice(1));
   }
+
+  // Else just return list.
   return list;
 }
 

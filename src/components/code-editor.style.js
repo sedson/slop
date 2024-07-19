@@ -10,19 +10,32 @@ export default `
 }
 
 :host {
-  --background: rgb(46, 46, 46);
-  --comments: rgb(121, 121, 121);
-  --text: rgb(214, 214, 214);
-  --yellow: rgb(229, 181, 103);
-  --green: rgb(180, 210, 115);
-  --orange: rgb(232, 125, 62);
-  --purple: rgb(158, 134, 200);
-  --pink: rgb(176, 82, 121);
-  --blue: rgb(108, 153, 187);
-  --red: rgb(255, 80, 133);
-  --log-height: 20%;
   width: 100%;
   height: 100%;
+  --log-height: 20%;
+  /* --background: rgb(46, 46, 46);
+   --background-focus: rgb(36, 36, 36);
+   --comments: rgb(121, 121, 121);
+   --text: rgb(214, 214, 214);
+   --yellow: rgb(229, 181, 103);
+   --green: rgb(180, 210, 115);
+   --orange: rgb(232, 125, 62);
+   --purple: rgb(158, 134, 200);
+   --pink: rgb(176, 82, 121);
+   --blue: rgb(108, 153, 187);
+   --red: rgb(255, 80, 133);*/
+  --background: #fdf6e3;
+  --background-focus: #eee8d5;
+  --background-selection: #2aa19844;
+  --text: #586e75;
+  --comments: #93a1a1;
+  --red: #dc322f;
+  --orange: #cb4b16;
+  --yellow: #b58900;
+  --green: #859900;
+  --blue: #268bd2;
+  --purple: #6c71c4;
+  --pink: #d33682;
 }
 
 .editor {
@@ -74,6 +87,16 @@ export default `
   counter-reset: line-no 1;
 }
 
+.scroll-filler,
+.display-text {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  padding: 1em;
+}
+
 .str {
   color: var(--yellow);
 }
@@ -110,6 +133,9 @@ export default `
 .invalid {
   color: var(--orange);
 }
+.comment {
+  color: var(--comments);
+}
 
 .line {
   display: block;
@@ -118,31 +144,33 @@ export default `
 
 .line::before {
   content: counter(linenumcounter);
-  margin-left: -3rem;
+  margin-left: -3em;
   display: inline-block;
-  width: 3rem;
+  width: 3em;
   color: var(--comments);
 }
 
-.source {
-  padding-left: 4rem;
+.line.caret-line {
+  background: #8881;
 }
-.display { 
-  padding-left: 4rem;
+.line.caret-line::before {
+  background: #8881;
 }
 
+.source, .display, .display-text {
+  padding-left: 4em;
+}
 
 .source:focus {
-  outline: 3px solid gray;
+  background: var(--background-focus);
+  outline: none
 }
 .source::selection {
-  background-color: rgba(255, 255, 255, 0.1);
-  outline: 3px solid gold;
+  background-color: var(--background-selection);
 }
 
 .log {
-  border-top: 1px solid yellow;
-  padding: 1rem;
+  padding-top: 1em;
   color: var(--text);
   height: var(--log-height);
   width: 100%;
@@ -154,14 +182,21 @@ export default `
   bottom: 0;
   left: 0;
 }
-
-.prompt {
-  color: var(--green);
-  width: 3rem;
+.log-line {
+  padding-left: 4rem;
+}
+.log-line.error {
+  background: #ff000033;
+}
+.log-line::before {
+  content: '>';
+  margin-left: -3em;
   display: inline-block;
+  width: 3em;
+  color: var(--comments);
 }
-.prompt.error {
+.log-line.error::before {
+  content: '×';
   color: var(--red);
-}
 
 `.trim();

@@ -3,28 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Blend-S</title>
+  <title>SL-OP</title>
   <link rel="stylesheet" type="text/css" href="style.css">
-  <script type="module" src="src/main.js" defer></script>
   <script type="module" src=src/components/code-editor.js></script>
+  <script type="module" src=src/components/viewport-canvas.js></script>
+  
+  <script type="module" src="src/main.js" defer></script>
 </head>
 <body>
   <div class="menu-bar">
     <ul class="inline-list options">
-      <li>img</li>
+      <li>SL-OP</li>
+      <li>FILE</li>
+      <li>EVAL</li>
     </ul>
   </div>
   <div class="fs pane h-split">
-    <div class="pane v-split half">
-      <div class="pane code-area">
-        <code-editor id="editor"></code-editor>
-      </div>
+    
+    <div class="pane half border-right">
+      <code-editor id="editor"></code-editor>
     </div>
 
-    <div class="pane artboard half">
-      
+    <div class="pane half">
+      <viewport-canvas id="viewport"></viewport-canvas>
     </div>
-    
+
   </div>
 </body>
 </html>
