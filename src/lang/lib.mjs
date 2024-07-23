@@ -43,6 +43,7 @@ export const math = {
   '>>': (a, b) => a >> b,
   '&': (a, b) => a & b,
   '|': (a, b) => a | b,
+  '**': (a, b) => a ** b,
 }
 
 export const lists = {
@@ -67,4 +68,11 @@ export const lists = {
   'nth': (ls, n) => ls[n] || 0,
   'has': (ls, member) => ls.indexOf(member) > -1,
   'fill-with': (len, val) => new Array(len).fill(val),
+  '->' : (data, ...functions) => {
+    let d = data;
+    for (let f of functions) {
+      d = d.map(f);
+    }
+    return d;
+  }
 }

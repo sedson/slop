@@ -2,6 +2,20 @@ import { tokenize, Context, run, keywords, lib } from "./lang/index.mjs";
 import { highlight } from './highlight.js';
 import { format } from "./utils.js";
 import { Cnvs } from './cnvs.js';
+import * as themes from './themes.js';
+
+
+function applyTheme(theme, ...objects) {
+  console.log(objects)
+  for (let [name, color] of Object.entries(theme)) {
+    for (let obj of objects) {
+      obj.style.setProperty('--' + name, color);
+    }
+  }
+}
+
+const THEME = themes.cooldark;
+
 
 
 function ctx(editor = null, viewport = null) {
@@ -9,50 +23,55 @@ function ctx(editor = null, viewport = null) {
 
   if (editor) {
     Object.assign(scope, {
-      print: item => editor.print(format(item)),
+      print: (...items) => {
+        items.forEach((item) => editor.print(format(item)));
+        return items[items.length - 1];
+      },
     });
-  }
 
-  if (viewport) scope.viewport = viewport;
+    if (viewport) scope.viewport = viewport;
 
-  Object.assign(scope, {
-    canvas: (width, height, label) => {
-      return new Cnvs(width, height, label);
-    },
+    Object.assign(scope, {
+      canvas: (width, height, label) => {
+        return new Cnvs(width, height, label);
+      },
 
-    'make-canvas': (width, height, label) => {
-      return new Cnvs(width, height, label);
-    },
+      'make-canvas': (width, height, label) => {
+        return new Cnvs(width, height, label);
+      },
 
-    view: (canvas, x = 0, y = 0) => {
-      if (viewport) {
-        viewport.artboards.push({
-          canvas: canvas.canvas,
-          position: [x, y]
+      Canvas: Cnvs,
+
+      view: (canvas, x = 0, y = 0) => {
+        if (viewport) {
+          viewport.artboards.push({
+            canvas: canvas.canvas,
+            position: [x, y]
+          })
+        }
+      },
+
+      'open-new': (canvas) => {
+        const url = canvas.canvas.toDataURL();
+        fetch(url).then(async res => {
+          const blob = await res.blob();
+          const handle = URL.createObjectURL(blob);
+          window.open(handle);
         })
-      }
-    },
+        return canvas;
+      },
 
-    'open-new': (canvas) => {
-      const url = canvas.canvas.toDataURL();
-      fetch(url).then(async res => {
-        const blob = await res.blob();
-        const handle = URL.createObjectURL(blob);
-        window.open(handle);
-      })
-      return canvas;
-    },
+      ui: {
+        color: () => {}
+      },
 
-    ui: {
-      color: () => {}
-    },
+      now: () => performance.now(),
 
-    now: () => performance.now(),
+      blend: (mode, a, b, alpha) => Cnvs.blend(mode, a, b, alpha),
+    })
 
-    blend: (mode, a, b, alpha) => Cnvs.blend(mode, a, b, alpha),
-  })
-
-  return new Context(scope);
+    return new Context(scope);
+  }
 }
 
 const globals = new Set(keywords);
@@ -63,6 +82,9 @@ for (let word of Object.keys(lib)) {
 window.addEventListener('DOMContentLoaded', () => {
   const editor = window.editor = document.getElementById('editor');
   const viewport = window.viewport = document.getElementById('viewport');
+
+  applyTheme(THEME, document.documentElement, editor, viewport);
+
 
   // Update syntax on keystrokes.
   editor.oninput(() => {

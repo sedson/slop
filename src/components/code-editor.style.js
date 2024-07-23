@@ -13,29 +13,17 @@ export default `
   width: 100%;
   height: 100%;
   --log-height: 20%;
-  /* --background: rgb(46, 46, 46);
-   --background-focus: rgb(36, 36, 36);
-   --comments: rgb(121, 121, 121);
-   --text: rgb(214, 214, 214);
-   --yellow: rgb(229, 181, 103);
-   --green: rgb(180, 210, 115);
-   --orange: rgb(232, 125, 62);
-   --purple: rgb(158, 134, 200);
-   --pink: rgb(176, 82, 121);
-   --blue: rgb(108, 153, 187);
-   --red: rgb(255, 80, 133);*/
-  --background: #fdf6e3;
-  --background-focus: #eee8d5;
-  --background-selection: #2aa19844;
-  --text: #586e75;
-  --comments: #93a1a1;
-  --red: #dc322f;
-  --orange: #cb4b16;
-  --yellow: #b58900;
-  --green: #859900;
-  --blue: #268bd2;
-  --purple: #6c71c4;
-  --pink: #d33682;
+  --background: whitesmoke;
+  --comments: lightslategray;
+  --selection: gold;
+  --text: darkSlateGray;
+  --yellow: peru;
+  --green: green;
+  --orange: tomato;
+  --purple: slateblue;
+  --pink: mediumvioletred;
+  --blue: steelblue;
+  --red: firebrick;
 }
 
 .editor {
@@ -105,7 +93,7 @@ export default `
 }
 .lparen,
 .rparen {
-  color: var(--pink);
+  color: var(--comments);
 }
 .lparen.depth-1,
 .rparen.depth-1 {
@@ -151,22 +139,24 @@ export default `
 }
 
 .line.caret-line {
-  background: #8881;
+  background: var(--currentline);
 }
 .line.caret-line::before {
-  background: #8881;
+  background: var(--currentline);
 }
 
 .source, .display, .display-text {
   padding-left: 4em;
 }
 
-.source:focus {
-  background: var(--background-focus);
-  outline: none
-}
 .source::selection {
-  background-color: var(--background-selection);
+  background-color: var(--selection);
+}
+
+
+.source:focus {
+  outline: none;
+  background: var(--focus);
 }
 
 .log {
