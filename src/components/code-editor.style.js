@@ -91,24 +91,23 @@ export default `
 .num {
   color: var(--purple);
 }
-.lparen,
-.rparen {
+.lparen, .rparen, .lbrace, .r {
   color: var(--comments);
 }
-.lparen.depth-1,
-.rparen.depth-1 {
+.depth-1,
+.depth-1 {
   color: var(--purple);
 }
-.lparen.depth-2,
-.rparen.depth-2 {
+.depth-2,
+.depth-2 {
   color: var(--blue);
 }
-.lparen.depth-3,
-.rparen.depth-3 {
+.depth-3,
+.depth-3 {
   color: var(--green);
 }
-.lparen.depth-4,
-.rparen.depth-4 {
+.depth-4,
+.depth-4 {
   color: var(--orange);
 }
 .dynamic {

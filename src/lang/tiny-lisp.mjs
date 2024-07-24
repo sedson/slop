@@ -1,9 +1,19 @@
 /**
  * @file Implementation of a tiny lisp dialect.
  */
+
+/** 
+ * Make a bunch of simple character testers. I prefer this to regex.
+ */ 
 const is = {
   leftParen: (char) => char === '(',
   rightParen: (char) => char === ')',
+  leftBrace: (char) => char === '{',
+  rightBrace: (char) => char === '}',
+  leftBracket: (char) => char === '[',
+  rightBracket: (char) => char === ']',
+  leftDelim: (char) => is.leftParen(char) || is.leftBrace(char) || is.leftBracket(char),
+  rightDelim: (char) => is.rightParen(char) || is.rightBrace(char) || is.rightBracket(char),
   digit: (char) => char >= '0' && char <= '9',
   whitespace: (char) => char === ' ' || char === '\n' || char === '\t',
   linebreak: (char) => char === '\n',
@@ -21,23 +31,36 @@ const is = {
   dash: (char) => char === '-',
   letter: (char) => (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z'),
   word: (char) => !is.whitespace(char) &&
-    !is.leftParen(char) &&
-    !is.rightParen(char),
+    !is.leftDelim(char) &&
+    !is.rightDelim(char),
 };
 
+
+/**
+ * Token types.
+ */ 
 export const types = {
   lparen: 'lparen',
   rparen: 'rparen',
+  lbrace: 'lbrace',
+  rbrace: 'rbrace',
+  lbracket: 'lbracket',
+  rbracket: 'rbracket',
+  
   num: 'num',
   str: 'str',
-
-  identifier: 'identifier',
-  unknown: 'unknown',
   literal: 'literal',
   comment: 'comment',
+  identifier: 'identifier',
+  
+  unknown: 'unknown',
   eof: 'eof',
 };
 
+
+/**
+ * Reserved words in the lang.
+ */ 
 export const reservedValues = {
   null: null,
   nil: null,
@@ -47,6 +70,10 @@ export const reservedValues = {
   empty: [],
 };
 
+
+/**
+ * The core functions.
+ */ 
 export const core = {
   if: 'if',
   fn: 'fn',
@@ -58,10 +85,14 @@ export const core = {
   set: 'set',
 };
 
+
 // Export the keywords.
 export const keywords = Object.keys({ ...core, ...reservedValues });
 
 
+/**
+ * String reading helper.
+ */ 
 export class StringReader {
   constructor(str) {
     this.str = str;
@@ -95,6 +126,7 @@ export function tokenize(input) {
     col++;
     return reader.next();
   };
+
   const grab = (offset = 0) => {
     return reader.grab(tokenStart + offset, reader.loc - offset);
   };
@@ -121,16 +153,23 @@ export function tokenize(input) {
       continue;
     }
 
-    if (is.leftParen(char)) {
+    if (is.leftDelim(char)) {
       parenDepth += 1;
-      const t = token(types.lparen, grab(), '(', [tokenStart, reader.loc], line, colStart);
+      const type = is.leftParen(char) ? types.lparen : 
+        (is.leftBrace(char) ? types.lbrace : types.lbracket);
+
+      const t = token(type, grab(), char, [tokenStart, reader.loc], line, colStart);
       t.depth = parenDepth;
       tokens.push(t);
       continue;
     }
 
-    if (is.rightParen(char)) {
-      const t = token(types.rparen, grab(), ')', [tokenStart, reader.loc], line, colStart);
+    if (is.rightDelim(char)) {
+      const type = is.rightParen(char) ? types.rparen : 
+        (is.rightBrace(char) ? types.rbrace : types.lbracket);
+
+      const t = token(type, grab(), char, [tokenStart, reader.loc], line, colStart);
+      
       t.depth = parenDepth;
       tokens.push(t);
       parenDepth -= 1;
@@ -260,14 +299,42 @@ export function ast(tokens) {
     return elems;
   };
 
+  const hashmap = () => {
+    const dict = { _hashmap: true };
+
+    let isKey = true;
+    let key = null;
+    
+    while (!match(types.rbrace)) {
+      if (isKey) {
+        key = expression();
+      } else {
+        dict[key.val] = expression();
+      }
+      isKey = !isKey;
+    }
+
+    return dict;
+  }
+
+
   const atom = () => {
     const token = next();
     switch (token.type) {
     case types.identifier:
-      return { type: types.identifier, val: token.val, subpath: token.subpath };
+      return { 
+        type: types.identifier, 
+        val: token.val, 
+        subpath: token.subpath, 
+        range: token.range
+      };
     case types.num:
     case types.str:
-      return { type: types.literal, val: token.val };
+      return { 
+        type: types.literal, 
+        val: token.val,
+        range: tokens.range
+      };
     case types.comment:
       return false;
     default:
@@ -282,6 +349,14 @@ export function ast(tokens) {
       }
       return list();
     }
+
+    if (match(types.lbrace)) {
+      if (match(types.rbrace)) {
+        return  { _hashmap: true };
+      }
+      return hashmap();
+    }
+
     return atom();
   };
 
@@ -294,22 +369,23 @@ export function ast(tokens) {
 
 
 export function parse(source) {
+  const tokens = tokenize(source);
   try {
-    const tokens = tokenize(source);
     const tree = ast(tokens);
     return { ok: true, tokens, tree }
   } catch (e) {
-    return { ok: false, error: e };
+    return { ok: false, tokens, error: e };
   }
 }
 
 
 export function run(source, context) {
+  const tokens = tokenize(source);
   try {
-    const { tree, tokens } = parse(source);
-
+    const tree = ast(tokens);
+    
     let result = null;
-
+    
     for (let expression of tree) {
       result = interpret(expression, context);
     }
@@ -318,15 +394,28 @@ export function run(source, context) {
 
   } catch (e) {
 
-    return { ok: false, error: e };
+    return { ok: false, error: e, tokens};
   }
 }
 
+
+/**
+ * Search for a nested path in the object outer.
+ * @param {object} outer The context to search in.
+ * @param {string[]} path The array of strings to search with.
+ * @return {[any, object]} A tuple where the first element is the asked for
+ *     value or undefined. The second element is the direct parent which is 
+ *     helpful for binding 'this' if the value is a function.
+ */ 
 export function _nested (outer, path) {
-  return path.reduce((obj, next) => {
-    if (obj && obj[next]) return obj[next];
-    return undefined;
-  }, outer);
+  let parent = outer;
+  for (let i = 0; i < path.length - 1; i++) {
+    const target = path[i];
+    if (parent && parent[target] !== undefined) {
+      parent = parent[target];
+    }
+  }
+  return [parent[path[path.length - 1]], parent];
 }
 
 
@@ -342,10 +431,10 @@ export class Context {
   get(id, subpath) {
     if (id in this.env) {
       if (subpath && subpath.length >= 1) {
-        let nestedVal = _nested(this.env[id], subpath);
+        let [ nestedVal, parent ] = _nested(this.env[id], subpath);
         if (nestedVal !== undefined) {
           if (nestedVal instanceof Function) {
-            return nestedVal.bind(this.env[id])
+            return nestedVal.bind(parent)
           }
           return nestedVal;
         } else {
@@ -390,6 +479,15 @@ export function interpret(expression, context) {
 
   if (expression === undefined)
     return null;
+
+  if (expression._hashmap) {
+    const newMap = {};
+    for (let key in expression) {
+      if (is.underscore(key[0])) continue;
+      newMap[key] = interpret(expression[key], context);
+    }
+    return newMap;
+  }
 
   if (!Array.isArray(expression))
     throw new Error('Unhandled non-list case');

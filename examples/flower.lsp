@@ -17,7 +17,7 @@
 (def w 1024)
 (def h 1024)
 
-(def cnv (-> Canvas w h 'MAIN))
+(def cnv (~Canvas.new w h 'MAIN))
 
 (print cnv)
 

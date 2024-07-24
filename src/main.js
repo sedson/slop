@@ -6,7 +6,6 @@ import * as themes from './themes.js';
 
 
 function applyTheme(theme, ...objects) {
-  console.log(objects)
   for (let [name, color] of Object.entries(theme)) {
     for (let obj of objects) {
       obj.style.setProperty('--' + name, color);
@@ -14,8 +13,9 @@ function applyTheme(theme, ...objects) {
   }
 }
 
-const THEME = themes.cooldark;
+const imagesBySource = {};
 
+const THEME = themes.xcodeDark;
 
 
 function ctx(editor = null, viewport = null) {
@@ -41,6 +41,7 @@ function ctx(editor = null, viewport = null) {
       },
 
       Canvas: Cnvs,
+      '->Canvas': (...args) => new Cnvs(...args),
 
       view: (canvas, x = 0, y = 0) => {
         if (viewport) {
@@ -68,6 +69,18 @@ function ctx(editor = null, viewport = null) {
       now: () => performance.now(),
 
       blend: (mode, a, b, alpha) => Cnvs.blend(mode, a, b, alpha),
+
+      '@color': (x) => {
+        return x;
+      },
+
+      '@slider': (x) => {
+        return x;
+      },
+
+      'load-img': (url) => {
+        ''
+      }
     })
 
     return new Context(scope);
@@ -97,12 +110,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Eval on control+enter
   editor.mapkey('ctrl+enter', () => {
     const src = editor.sourceString;
-    const { ok, tree, result, error } = run(src, ctx(editor, viewport));
-    console.log(tree);
+    const { ok, tree, result, error, tokens } = run(src, ctx(editor, viewport));
+    console.log({ tokens, tree });
     if (ok) {
       editor.print(format(result));
     } else {
       editor.error(error);
+      console.error(error);
     }
   });
 

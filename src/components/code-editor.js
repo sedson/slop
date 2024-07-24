@@ -278,7 +278,6 @@ class CodeEditor extends HTMLElement {
 
   updateCaret() {
     const lineNo = this.currentLine;
-    console.log(lineNo);
     if (lineNo === -1) return;
     for (let i = 0; i < this.lines.length; i++) {
       const line = this.lines[i];

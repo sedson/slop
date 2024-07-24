@@ -43,9 +43,11 @@ export class Cnvs {
     newCanvas.alpha(alpha);
     newCanvas.img(b, 0, 0);
     return newCanvas;
-
   }
 
+  static new(w, h, label) {
+    return new Cnvs(w, h, label);
+  }
 
   rect(x, y, w, h, col) {
     this.ctx.fillStyle = col;
