@@ -4,7 +4,7 @@
 
 import { BlendModes } from './constants.js';
 
-export class Cnvs {
+export class Canvas {
   constructor(w, h, label) {
     this.w = w;
     this.h = h;
@@ -61,7 +61,7 @@ export class Cnvs {
   }
 
   static new(w, h, label) {
-    return new Cnvs(w, h, label);
+    return new Canvas(w, h, label);
   }
 
   rect(x, y, w, h, col) {

@@ -1,5 +1,3 @@
-export default `
-
 @font-face {
   font-family: Commit;
   src: url('/fonts/CommitMono-400-Regular.otf') format('opentype');
@@ -12,6 +10,7 @@ export default `
 :host {
   width: 100%;
   height: 100%;
+  
   --log-height: 20%;
   --background: whitesmoke;
   --comments: lightslategray;
@@ -24,9 +23,7 @@ export default `
   --pink: mediumvioletred;
   --blue: steelblue;
   --red: firebrick;
-}
-
-.editor {
+  
   font-family: Commit, monospace;
   background: var(--background);
   color: var(--text);
@@ -117,9 +114,11 @@ export default `
 .keyword {
   color: var(--blue);
 }
+
 .invalid {
   color: var(--orange);
 }
+
 .comment {
   color: var(--comments);
 }
@@ -140,6 +139,7 @@ export default `
 .line.caret-line {
   background: var(--currentline);
 }
+
 .line.caret-line::before {
   background: var(--currentline);
 }
@@ -151,7 +151,6 @@ export default `
 .source::selection {
   background-color: var(--selection);
 }
-
 
 .source:focus {
   outline: none;
@@ -171,12 +170,15 @@ export default `
   bottom: 0;
   left: 0;
 }
+
 .log-line {
   padding-left: 4rem;
 }
+
 .log-line.error {
   background: #ff000033;
 }
+
 .log-line::before {
   content: '>';
   margin-left: -3em;
@@ -184,8 +186,8 @@ export default `
   width: 3em;
   color: var(--comments);
 }
+
 .log-line.error::before {
   content: '×';
   color: var(--red);
-
-`.trim();
+}

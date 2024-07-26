@@ -8,7 +8,7 @@
 
 (def w 500)
 (def h 500)
-(def A (canvas w h 'canvas-a))
+(def A (->Canvas w h 'canvas-a))
 
 (~A.rect 0 0 500 500 'yellowgreen)
 (~A.ellipse 250 250 200 200 'green)
@@ -28,10 +28,3 @@
 (defn dist (p1 p2) (sqrt (dist2 p1 p2)))
 
 (dist (4 4) (8 8))
-
-
-
-
-
-
-

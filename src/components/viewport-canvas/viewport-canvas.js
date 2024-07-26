@@ -1,9 +1,9 @@
-import css from './viewport-canvas.style.js';
+/**
+ * @file Canvas viewer component.
+ */
 
 const markup = `
-<style>
-${css}
-</style>
+<link rel="stylesheet" href="src/components/viewport-canvas/style.css">
 <div class="viewport">
   <canvas class="view-canvas"></canvas>
 </div>
@@ -20,8 +20,9 @@ class ViewportCanvas extends HTMLElement {
     this.viewCanvas = this.root.querySelector('.view-canvas');
     this.viewCtx = this.viewCanvas.getContext('2d');
 
-    this._listeners = [];
     this.keymap = new Map();
+
+    this._listeners = [];
 
     this.artboards = [];
 
@@ -29,7 +30,7 @@ class ViewportCanvas extends HTMLElement {
       top: 0,
       left: 0,
       scale: 1,
-    }
+    };
 
     this._resizeHandler = window.addEventListener('resize', () => this.draw());
   }
@@ -41,7 +42,6 @@ class ViewportCanvas extends HTMLElement {
   draw() {
     this.viewCanvas.width = this.width;
     this.viewCanvas.height = this.height;
-
 
     this.viewCtx.clearRect(0, 0, this.width, this.height);
 
@@ -59,7 +59,7 @@ class ViewportCanvas extends HTMLElement {
   }
 
 
-  listen(event, callback, target = window) {
+  listen(target, event, callback) {
     const listener = target.addEventListener(event, callback);
     this._listeners.push(listener);
     return listener;
@@ -102,30 +102,29 @@ class ViewportCanvas extends HTMLElement {
 
 
   connectedCallback() {
-    this.listen('keydown', (e) => this._keys(e), window);
+    this.listen(window, 'keydown', (e) => this._keys(e));
 
-    this.listen('pointerdown', () => {
+    this.listen(this.viewport, 'pointerdown', () => {
       this._mouseDown = true;
-    }, this.viewport);
+    });
 
-    this.listen('pointerup', () => {
+    this.listen(window, 'pointerup', () => {
       this._mouseDown = false;
-    }, window);
+    });
 
-    this.listen('mousemove', (e) => {
+    this.listen(window, 'mousemove', (e) => {
       if (!this._mouseDown) return;
-      this.state.left += e.movementX //  / this.state.scale;
-      this.state.top += e.movementY //  / this.state.scale;
+      this.state.left += e.movementX;
+      this.state.top += e.movementY;
       this.draw();
-    }, window);
+    });
 
-    this.listen('wheel', (e) => {
+    this.listen(this.viewport, 'wheel', (e) => {
       console.log(e.wheelDeltaY);
       this.state.scale += e.wheelDeltaY / 1000;
       this.state.scale = Math.min(Math.max(0.1, this.state.scale), 20)
       this.draw();
-    }, this.viewport);
-
+    });
   }
 
 

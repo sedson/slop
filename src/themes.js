@@ -1,3 +1,15 @@
+/**
+ * @file Themes for the editor.
+ */
+
+export function applyTheme(theme, ...objects) {
+  for (let [name, color] of Object.entries(theme)) {
+    for (let obj of objects) {
+      obj.style.setProperty('--' + name, color);
+    }
+  }
+}
+
 export const xcodeDark = {
   // main background
   background: "#2d2d2f",
