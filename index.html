@@ -6,16 +6,20 @@
   <title>SLOP</title>
   <link rel="stylesheet" type="text/css" href="style.css">
   <script type="module" src=src/components/code-editor.js></script>
-  <script type="module" src=src/components/viewport-canvas.js></script>
-  
+  <script type="module" src=src/components/viewport-canvas.js></script>  
   <script type="module" src="src/main.js" defer></script>
 </head>
 <body>
   <div class="menu-bar">
     <ul class="inline-list options">
       <li>SLOP</li>
-      <li>FILE</li>
-      <li>EVAL</li>
+      <li>
+        <label for="file-import"><span class="underline">I</span>MPORT</label>
+        <input type="file" name="file-import" id="file-import" multiple>  
+      </li>
+      <li id="eval">
+        <span class="underline">E</span>VAL
+      </li>
     </ul>
   </div>
   <div class="fs pane h-split">

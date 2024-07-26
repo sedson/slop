@@ -37,7 +37,7 @@ const is = {
 
 
 /**
- * Token types.
+ * Entity types.
  */ 
 export const types = {
   lparen: 'lparen',
@@ -52,6 +52,8 @@ export const types = {
   literal: 'literal',
   comment: 'comment',
   identifier: 'identifier',
+  list: 'list',
+  hashmap: 'hashmap',
   
   unknown: 'unknown',
   eof: 'eof',
@@ -79,6 +81,7 @@ export const core = {
   fn: 'fn',
   def: 'def',
   defn: 'defn',
+  fnjs: 'fnjs',
   cond: 'cond',
   for: 'for',
   let: 'let',
@@ -229,7 +232,7 @@ export function tokenize(input) {
     tokens.push(t);
   }
 
-  tokens.push(token(types.eof, '', '', [reader.loc], line));
+  tokens.push(token(types.eof, '', '', [reader.loc, reader.loc], line));
   return tokens;
 }
 
@@ -278,9 +281,13 @@ export function _identifier(str) {
 export function ast(tokens) {
   let loc = 0;
   const expressions = [];
+  
+
   const peek = () => tokens[loc];
+  const prev = () => tokens[Math.max(loc - 1, 0)];
   const next = () => tokens[loc++];
   const done = () => peek().type === types.eof;
+
 
   const match = type => {
     if (peek().type === type) {
@@ -290,21 +297,29 @@ export function ast(tokens) {
     return false;
   };
 
+
   const list = () => {
+    const start = prev().range[0];
+    
     const elems = [];
+
     while (!match(types.rparen)) {
       let expr = expression();
       if (expr) elems.push(expr);
     }
-    return elems;
+    
+    const end = prev().range[1];
+    
+    return {
+      type: types.list, elements: elems, range: [start, end]
+    }
   };
 
   const hashmap = () => {
-    const dict = { _hashmap: true };
-
+    const dict = {};
     let isKey = true;
     let key = null;
-    
+
     while (!match(types.rbrace)) {
       if (isKey) {
         key = expression();
@@ -314,13 +329,14 @@ export function ast(tokens) {
       isKey = !isKey;
     }
 
-    return dict;
+    return { type: types.hashmap, hashmap: dict };
   }
 
 
   const atom = () => {
     const token = next();
     switch (token.type) {
+    
     case types.identifier:
       return { 
         type: types.identifier, 
@@ -328,21 +344,26 @@ export function ast(tokens) {
         subpath: token.subpath, 
         range: token.range
       };
+    
     case types.num:
     case types.str:
       return { 
         type: types.literal, 
         val: token.val,
-        range: tokens.range
+        range: token.range
       };
+
     case types.comment:
       return false;
+    
     default:
       throw new Error(`AST Error: unexpected type: ${token.type}, line: ${token.line}, col: ${token.col}`);
     }
   };
 
+
   const expression = () => {
+    
     if (match(types.lparen)) {
       if (match(types.rparen)) {
         return { type: types.literal, val: null };
@@ -480,53 +501,58 @@ export function interpret(expression, context) {
   if (expression === undefined)
     return null;
 
-  if (expression._hashmap) {
+  if (expression.type === types.hashmap) {
     const newMap = {};
-    for (let key in expression) {
+    for (let key in expression.hashmap) {
       if (is.underscore(key[0])) continue;
-      newMap[key] = interpret(expression[key], context);
+      newMap[key] = interpret(expression.hashmap[key], context);
     }
     return newMap;
   }
 
-  if (!Array.isArray(expression))
+  if (expression.type !== types.list)
     throw new Error('Unhandled non-list case');
 
   // Create a new context if needed.
   if (!context) context = new Context();
 
+  const elements = expression.elements;
+
   // Now we are in a list.
-  let first = expression[0].val;
+  let first = elements[0].val;
 
   // Check for core functions.
   if (first in core) {
     switch (core[first]) {
 
     case core.def:
-      return _def(expression[1].val, expression[2], context);
+      return _def(elements[1].val, elements[2], context);
 
     case core.if:
-      return _if(expression[1], expression[2], expression[3], context);
+      return _if(elements[1], elements[2], elements[3], context);
 
     case core.fn:
-      return _fn(expression[1], expression.slice(2), context);
+      return _fn(elements[1], elements.slice(2), context);
+
+    case core.fnjs:
+      return _fnjs(elements[1], elements.slice(2), context);
 
     case core.defn:
-      return _defn(expression[1].val, expression[2], expression.slice(3), context)
+      return _defn(elements[1].val, elements[2], elements.slice(3), context)
 
     case core.cond:
-      return _cond(expression.slice(1), context);
+      return _cond(elements.slice(1), context);
 
     case core.for:
-      return _for(expression[1], expression[2], expression.slice(3), context);
+      return _for(elements[1], elements[2], elements.slice(3), context);
 
     case core.let:
-      return _let(expression[1], expression.slice(2), context);
+      return _let(elements[1], elements.slice(2), context);
     }
   }
 
   // Interpret each element of the list.
-  const list = expression.map(n => interpret(n, context));
+  const list = elements.map(n => interpret(n, context));
 
   // If function, apply to list.
   if (list[0] instanceof Function) {
@@ -537,6 +563,84 @@ export function interpret(expression, context) {
   return list;
 }
 
+ 
+const binaryOps = ['**', '>', '<', '>=', '<='];
+const multiOps = ['*', '+', '-', '/'];
+
+
+export function toJS(expression, context = null, useReturn = false) {
+
+  const format = (str) => useReturn ? `return ${str}` : str;
+  const _js = (arg) => toJS(arg, context);
+
+  if (typeof expression === 'number') 
+      return format(expression);
+  
+  if (typeof expression === 'string') 
+      return format(`"${expression}"`);
+  
+  if (expression.type === types.literal) 
+    return toJS(expression.val, context);
+
+  if (expression.type === types.identifier) {
+
+    try {
+      let val = context.get(expression.val);
+      return _js(val);
+    } catch {
+      return format(expression.val);
+    }    
+  }
+
+  if (expression.type !== types.list) {
+    throw new Error('toJs error!')
+  }
+  
+  const fn = expression.elements[0];
+  const args = expression.elements.slice(1);
+  
+  if (binaryOps.includes(fn.val)) {
+    return format(`(${_js(args[0])} ${fn.val} ${_js(args[1])})`);
+  }
+
+  if (multiOps.includes(fn.val)) {
+    const joined = args.map(x => _js(x)).join(` ${fn.val} `);
+    return format(`(${joined})`);
+  }
+
+  if (fn.val === '=') {
+    return format(`(${_js(args[0])} === ${_js(args[1])})`);
+  }
+
+  if (fn.val === 'if') {
+    return format(`(${_js(args[0])} ? ${_js(args[1])} : ${_js(args[2])})`);
+  }
+
+  if (Math[fn.val] !== undefined) {
+    const interpretedArgs = args.map(x => _js(x)).join(', ');
+    return format(`Math.${fn.val}(${interpretedArgs})`);
+  }
+
+  if (fn.val === 'nth') {
+    const arr = _js(args[0]);
+    const ndx = _js(args[1]);
+    return format(`${arr}[${ndx}]`);
+  }
+
+  if (fn.val === 'def') {
+    if (useReturn) {
+      const id = toJS(args[0]);
+      return `let ${id} = ${_js(args[1])}; id`; 
+    }
+    return `let ${_js(args[0])} = ${_js(args[1])}`;
+  }
+
+  const list = expression.elements.map(x => _js(x)).join(', ');
+  return format(`[${list}]`);
+}
+
+
+
 /**
  * Create a lambda
  * @param {List} params
@@ -546,13 +650,14 @@ export function interpret(expression, context) {
  */
 function _fn(params, body, context) {
   return (...args) => {
-    const localContext = new Context(context.env, params, args);
+    const localContext = new Context(context.env, params.elements, args);
     return body.reduce((result, expr) => {
       result = interpret(expr, localContext);
       return result;
     }, null);
   };
 }
+
 
 /**
  * Create a simplified lamba that does not have its own local scope or params.
@@ -570,6 +675,23 @@ function _fn$(body, context) {
   };
 }
 
+function _fnjs(params, body, context) {
+  const bodyExprs = [];
+  console.log(JSON.stringify(context))
+
+  for (let i = 0; i < body.length; i++) {
+    if (i === body.length - 1) {
+      bodyExprs.push(toJS(body[i], context, true));
+    } else {
+      bodyExprs.push(toJS(body[i], context));
+    }
+  }
+  const paramsJS = toJS(params, context).slice(1, -1);
+  const fnString = `(${paramsJS}) => {\n  ${bodyExprs.join('\n  ')}\n}`;
+  console.log(fnString);
+  return eval(fnString);
+}
+
 function _if(predicate, ifBranch, elseBranch, context) {
   let condition = interpret(predicate, context);
   if (condition === null || condition === false) {
@@ -581,7 +703,7 @@ function _if(predicate, ifBranch, elseBranch, context) {
 
 function _for(label, controlValues, body, context) {
   const localContext = new Context(context.env);
-  let [start, end, by] = controlValues.map(n => interpret(n, context));
+  let [start, end, by] = controlValues.elements.map(n => interpret(n, context));
   by = by ?? 1;
 
   if (start === undefined || end === undefined || Math.sign(end - start) !== Math.sign(by)) {

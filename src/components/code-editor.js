@@ -14,7 +14,6 @@ ${css}
 </div>
 `.trim();
 
-
 class CodeEditor extends HTMLElement {
   constructor() {
     super();
@@ -34,7 +33,7 @@ class CodeEditor extends HTMLElement {
     this.keymap = new Map();
 
     this._tabSize = 2;
-    this._tabString = '  ';
+    this._tabString = "  ";
 
     this._fontSize = 1;
 
@@ -45,12 +44,19 @@ class CodeEditor extends HTMLElement {
     this.displayLines = [];
 
     this.nonPrintingChars = new Set([
-      'Tab', 'Meta', 'Shift', 'Control', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'
+      'Tab',
+      'Meta',
+      'Shift',
+      'Control',
+      'ArrowUp',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowDown',
     ]);
   }
 
   /**
-   * Add an event listener to the text area. Stash a reference to the listener 
+   * Add an event listener to the text area. Stash a reference to the listener
    * to remove on cleanup.
    * @param {string} event
    * @param {function} callback
@@ -66,7 +72,7 @@ class CodeEditor extends HTMLElement {
    * @param {string} event
    */
   raise(event) {
-    this.source.dispatchEvent(new Event(event))
+    this.source.dispatchEvent(new Event(event));
   }
 
   /**
@@ -81,20 +87,21 @@ class CodeEditor extends HTMLElement {
    * Set up a key handler.
    * @param {string} key The key combo. Like 'ctrl+r' or 'alt+shift+t'.
    * @param {function} callback
-   * @param {boolean=true} preventDefault Whether to prevent default on the 
-   *     event or not. 
+   * @param {boolean=true} preventDefault Whether to prevent default on the
+   *     event or not.
    */
   mapkey(key, callback, preventDefault = true) {
     this.keymap.set(key, {
       fn: callback,
-      preventDefault: preventDefault
+      preventDefault: preventDefault,
     });
   }
 
   get sourceString() {
-    return this.source.value.split('\n')
-      .map(ln => ln.trimRight())
-      .join('\n');
+    return this.source.value
+      .split("\n")
+      .map((ln) => ln.trimRight())
+      .join("\n");
   }
 
   get selection() {
@@ -104,12 +111,12 @@ class CodeEditor extends HTMLElement {
   get linebreaks() {
     const str = this.source.value;
     let loc = 0;
-    let ndx = str.indexOf('\n');
+    let ndx = str.indexOf("\n");
     if (ndx < 0) return [ndx];
     let breaks = [ndx];
     while (ndx > -1) {
-      ndx = str.indexOf('\n', ndx + 1);
-      if (ndx > -1) breaks.push(ndx)
+      ndx = str.indexOf("\n", ndx + 1);
+      if (ndx > -1) breaks.push(ndx);
     }
     breaks.push(this.source.value.length + 1);
     return breaks;
@@ -159,9 +166,13 @@ class CodeEditor extends HTMLElement {
     this.listen('selectionchange', (e) => this.updateCaret(), this.source);
 
     // Other browsers listen on the document.
-    this.listen('selectionchange', (e) => {
-      this.updateCaret();
-    }, document);
+    this.listen(
+      'selectionchange',
+      (e) => {
+        this.updateCaret();
+      },
+      document,
+    );
   }
 
   disconnectedCallback() {
@@ -170,12 +181,11 @@ class CodeEditor extends HTMLElement {
     }
   }
 
-
   save(uuid) {
     try {
       localStorage.setItem('text-' + uuid, this.source.value);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 
@@ -183,7 +193,7 @@ class CodeEditor extends HTMLElement {
     try {
       const text = localStorage.getItem('text-' + uuid);
       this.source.value = text;
-      this.raise('input')
+      this.raise('input');
     } catch (e) {
       console.error(e);
     }
@@ -194,9 +204,8 @@ class CodeEditor extends HTMLElement {
     line.classList.add('log-line');
     if (error) line.classList.add('error');
 
-    const time = (new Date()).toLocaleTimeString();
+    const time = new Date().toLocaleTimeString();
     const timeSpan = document.createElement('span');
-
 
     line.innerText = text;
     this.log.append(line);
@@ -212,7 +221,7 @@ class CodeEditor extends HTMLElement {
       let last = this._localUndoStack.pop();
       this.source.value = last.str;
       this.source.setSelectionRange(last.sel[0], last.sel[1]);
-      this.raise('input')
+      this.raise('input');
       e.preventDefault();
     }
   }
@@ -228,31 +237,35 @@ class CodeEditor extends HTMLElement {
 
     let lineStart = sel[0];
 
-    while (str[lineStart] !== '\n' && lineStart > -1) {
+    while (str[lineStart] !== "\n" && lineStart > -1) {
       lineStart--;
     }
     lineStart += 1;
 
-
     if (reverse) {
       let backShiftAmt = 0;
-      while (str[lineStart + backShiftAmt] === ' ' && backShiftAmt < this._tabSize) {
+      while (
+        str[lineStart + backShiftAmt] === " " &&
+        backShiftAmt < this._tabSize
+      ) {
         backShiftAmt++;
       }
 
-
-      this.source.value = str.slice(0, lineStart) + str.slice(lineStart + backShiftAmt);
+      this.source.value =
+        str.slice(0, lineStart) + str.slice(lineStart + backShiftAmt);
       const start = Math.max(sel[0] - backShiftAmt, lineStart);
       this.source.setSelectionRange(start, sel[1] - backShiftAmt);
-
     } else {
-      this.source.value = str.slice(0, lineStart) + this._tabString + str.slice(lineStart);
-      this.source.setSelectionRange(sel[0] + this._tabSize, sel[1] + this._tabSize);
+      this.source.value =
+        str.slice(0, lineStart) + this._tabString + str.slice(lineStart);
+      this.source.setSelectionRange(
+        sel[0] + this._tabSize,
+        sel[1] + this._tabSize,
+      );
     }
 
-    this.raise('input')
+    this.raise('input');
   }
-
 
   _mirror() {
     this.scrollFiller.style.height = this.source.scrollHeight + 'px';
@@ -270,8 +283,7 @@ class CodeEditor extends HTMLElement {
     this.lines = lines;
 
     this.displayText.innerHTML = '';
-    for (let line of this.lines)
-      this.displayText.append(line);
+    for (let line of this.lines) this.displayText.append(line);
 
     this.updateCaret();
   }
@@ -287,7 +299,10 @@ class CodeEditor extends HTMLElement {
       }
     }
   }
-}
 
+  clearLog() {
+    this.log.innerHTML = '';
+  }
+}
 
 customElements.define('code-editor', CodeEditor);

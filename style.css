@@ -36,17 +36,33 @@ body {
   display: flex;
   flex-flow: row;
   align-items: center;
-  padding: 1em;
 }
 
 .inline-list {
   list-style: none;
   display: flex;
-  flex-flow: row
+  flex-flow: row;
+  height: 100%;
 }
 
 .inline-list > * {
-  margin-right: 1em;
+  height: 100%;
+  padding: 0 1em;
+  display: flex;
+  align-items: center;
+  border-right: var(--line);;
+}
+
+.inline-list * {
+  cursor: pointer;
+}
+
+.inline-list > *:hover {
+  background: var(--blue);
+}
+
+.underline {
+  border-bottom: 1px solid currentColor;
 }
 
 .fs {
@@ -80,4 +96,15 @@ body {
 
 .border-right {
   border-right: var(--line);
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.custom-file-upload {
+  border: 1px solid #ccc;
+  display: inline-block;
+  padding: 6px 12px;
+  cursor: pointer;
 }

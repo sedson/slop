@@ -16,6 +16,7 @@ const test = (src, ctx = {}) => {
   }
 }
 
+
 Test('Basics', (assert) => {
   assert.equal(test(''), null, 'Empty string -> null');
   assert.equal(test('10'), 10, 'Integer atom');
@@ -25,6 +26,7 @@ Test('Basics', (assert) => {
   assert.equal(test('(20) (60)'), [60], '2 lists');
   assert.equal(test('(0- sa'), null, 'Syntax error -> null');
 });
+
 
 Test('Lambdas', (assert) => {
   let src;
@@ -36,6 +38,7 @@ Test('Lambdas', (assert) => {
   src = `((fn (x) x) 10)`;
   assert.equal(test(src), 10, 'Immediately invoked identity lambda');
 });
+
 
 Test('Define', (assert) => {
   let src;
@@ -102,4 +105,36 @@ Test('Funcs as params', (assert) => {
   `.trim();
   
   assert.equal(test(src, context), 'hey there', 'Function as param');
+});
+
+
+Test('toJS string-based compile', (assert) => {
+  const exprs = [
+    {
+      lisp: '(+ 1 2)',
+      js: '(1 + 2)'
+    },
+    {
+      lisp: '(+ (* 4 3 2) (/ 6 10 2))',
+      js: '((4 * 3 * 2) + (6 / 10 / 2))'
+    },
+    {
+      lisp: '(if (>= 4 0) "cool" 0)',
+      js: '((4 >= 0) ? "cool" : 0)',
+    }, 
+    {
+      lisp: '(min x y z)',
+      js: 'Math.min(x, y, z)'
+    }, 
+    {
+      lisp: '(1 2 3 4 5)',
+      js: '[1, 2, 3, 4, 5]'
+    }
+  ];
+
+  for (let expr of exprs) {
+    const tree = lang.ast(lang.tokenize(expr.lisp));
+    const js = lang.toJS(tree[0]);
+    assert.equal(js, expr.js, `LISP => ${expr.lisp}\n  JS   => ${js}\n`);
+  }
 });

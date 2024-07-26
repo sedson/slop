@@ -65,7 +65,7 @@ export const lists = {
   },
   'first': (ls) => ls[0] ?? null,
   'rest': (ls) => ls.slice(1),
-  'nth': (ls, n) => ls[n] || 0,
+  'nth': (ls, n) => ls[(n ?? ls.length - 1)],
   'has': (ls, member) => ls.indexOf(member) > -1,
   'fill-with': (len, val) => new Array(len).fill(val),
   '->' : (data, ...functions) => {

@@ -12,6 +12,7 @@ export class Cnvs {
     this.canvas.width = w;
     this.canvas.height = h;
     this.ctx = this.canvas.getContext('2d');
+    this.filterString = '';
   }
 
   iteratePixels(fn) {
@@ -28,10 +29,24 @@ export class Cnvs {
     this.ctx.putImageData(imgData, 0, 0);
   }
 
+  pixFn(fn) {
+    const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const pixels = imgData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const [r, g, b, a] = fn(pixels.slice(i, i + 4));
+      pixels[i] = r;
+      pixels[i + 1] = g;
+      pixels[i + 2] = b;
+      pixels[i + 3] = a;
+    }
+
+    this.ctx.putImageData(imgData, 0, 0);
+  }
+
   static blend(mode, a, b, alpha = 1) {
     console.log(mode, a, b, alpha)
     if (!BlendModes[mode]) {
-      throw new Error('no blend mode: ', mode);
+      throw new Error('no blend mode: ' + mode);
     }
 
     const w = Math.max(a.w, b.w);
@@ -121,12 +136,52 @@ export class Cnvs {
     return this;
   }
 
+  threshold(val = 128) {
+    const thresh = (r, g, b, a) => {
+      const avg = (r + g + b) / 3;
+      const v = avg > val ? 255 : 0;
+      return [v, v, v, a];
+    }
+    this.iteratePixels(thresh);
+    return this;
+  }
+
   line(x1, y1, x2, y2, color, width = 1) {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = width;
     this.ctx.beginPath();
     this.ctx.moveTo(x1, y1);
     this.ctx.lineTo(x2, y2);
+    return this;
+  }
+
+
+  blur(px = 1) {
+    this.ctx.filter = `blur(${px}px)`;
+    this.ctx.drawImage(this.canvas, 0, 0);
+    this.ctx.filter = '';
+    return this;
+  }
+
+  contrast(amount = 0) {
+    this.ctx.filter = `contrast(${amount * 100}%)`;
+    this.ctx.drawImage(this.canvas, 0, 0);
+    this.ctx.filter = '';
+    return this;
+  }
+
+  grayscale(amount = 0) {
+    this.ctx.filter = `grayscale(${amount * 100}%)`;
+    this.ctx.drawImage(this.canvas, 0, 0);
+    this.ctx.filter = '';
+    return this;
+  }
+
+  brightness(amount = 0) {
+    this.ctx.filter = `brightness(${amount * 100}%)`;
+    this.ctx.drawImage(this.canvas, 0, 0);
+    this.ctx.filter = '';
+    return this;
   }
 
   _customFormat() {
