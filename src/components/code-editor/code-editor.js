@@ -11,8 +11,10 @@
 
 import { highlight } from './highlight.js';
 import { tokenize } from './tokenize.js';
+import * as stringTools from './string-tools.js';
 
-// TODO These key presses interact with undo uniquely.
+// TODO : These key presses interact with undo uniquely. When/if I roll my own 
+// undo stack, these might go.
 const nonPrintingChars = new Set(['Tab', 'Meta', 'Shift', 'Control', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown']);
 
 const markup = `
@@ -52,26 +54,32 @@ class CodeEditor extends HTMLElement {
     this._listeners = [];
 
     /**
-     * The number of spaces to append on tab press.
-     * @private
-     */
-    this._tabSize = 2;
-
-    /**
      * The string to append on tab.
+     * @private
      */
     this._tabString = "  ";
 
     /**
      * The current size of the font in ems.
+     * @type {number}
+     * @private
      */
     this._fontSize = 1;
 
     /**
      * If I replace the string in the text area then the browser chucks its undo
      * history. Probably I want to make some kind of full custom undo stack.
+     * TODO
+     * @private
      */
     this._undoStack = [];
+
+    /**
+     * The list of line break locations.
+     * @type {number[]}
+     * @private
+     */
+
 
     /**
      * The array of the highlighted text.
@@ -85,6 +93,8 @@ class CodeEditor extends HTMLElement {
     this.syntax = {
       tokenize: tokenize,
       keywords: new Set(),
+      comment: '#',
+      tabSize: 2,
     }
   }
 
@@ -136,11 +146,19 @@ class CodeEditor extends HTMLElement {
 
 
   /**
-   * The source code, but cleaned so that lines are white-space-trimmed on the
-   * right ends.
+   * The source text.
    * @type {string} 
    */
-  get sourceString() {
+  get text() {
+    return this.source.value;
+  }
+
+
+  /**
+   * The source text, right trailing spaces trimmed per line.
+   * @type {string} 
+   */
+  get trimmedText() {
     return this.source.value
       .split("\n")
       .map((ln) => ln.trimRight())
@@ -158,37 +176,56 @@ class CodeEditor extends HTMLElement {
 
 
   /**
-   * A list of the locations of all line breaks.
-   * @type {number[]}
+   * The current caret position.
+   * @type {number}
    */
-  get linebreaks() {
-    const str = this.source.value;
-    let loc = 0;
-    let ndx = str.indexOf("\n");
-    if (ndx < 0) return [ndx];
-    let breaks = [ndx];
-    while (ndx > -1) {
-      ndx = str.indexOf("\n", ndx + 1);
-      if (ndx > -1) breaks.push(ndx);
-    }
-    breaks.push(this.source.value.length + 1);
-    return breaks;
+  get caretPosition() {
+    return this.source.selectionDirection === 'forward' ?
+      this.source.selectionEnd :
+      this.source.selectionStart;
   }
 
 
   /**
-   * The line of the current selection end.
-   * @type {number}
+   * A list of the locations of all line breaks.
+   * @type {number[]}
    */
-  get currentLine() {
-    const pos = this.source.selectionEnd;
-    const breaks = this.linebreaks;
-    for (let i = breaks.length - 1; i >= 0; i--) {
-      if (pos <= breaks[i] && pos > (breaks[i - 1] ?? -1)) {
-        return i;
-      }
+  get linebreaks() {
+    return stringTools.findLineBreaks(this.text);
+  }
+
+
+  /**
+   * Get the index of the line containing some selection.
+   * @param {number} ndx An index in the source string.
+   * @return {number} The line number containing that index.
+   */
+  lineAt(ndx) {
+    return this.linebreaks.findIndex((num, i, arr) => {
+      return ndx <= num && (ndx >= (arr[i - 1] ?? -1));
+    });
+  }
+
+
+  /**
+   * A list of all currently selected line numbers.
+   * @type {number[]}
+   */
+  get selectedLines() {
+    const sel = this.selection;
+    if (sel[0] === sel[1])
+      return [this.lineAt(sel[0])];
+
+    const start = this.lineAt(sel[0]);
+    const end = this.lineAt(sel[1]);
+    if (start === end)
+      return [start];
+
+    const range = [];
+    for (let i = start; i <= end; i++) {
+      range.push(i);
     }
-    return -1;
+    return range;
   }
 
 
@@ -237,10 +274,7 @@ class CodeEditor extends HTMLElement {
       this.updateCaret();
     });
 
-    this.listen(this.source, 'input', (e) => {
-      const tokens = this.syntax.tokenize(this.sourceString);
-      this.setHighlight(highlight(this.sourceString, tokens, this.syntax.keywords));
-    });
+    this.listen(this.source, 'input', (e) => this.update());
   }
 
 
@@ -254,6 +288,15 @@ class CodeEditor extends HTMLElement {
   }
 
 
+  update() {
+    if (this.syntax.tokenize) {
+      const tokens = this.syntax.tokenize(this.text);
+      const highlighted = highlight(this.text, tokens, this.syntax.keywords);
+      this.setHighlight(highlighted);
+    }
+    this.updateCaret();
+  }
+
   /**
    * Save to local storage.
    * TODO
@@ -262,6 +305,7 @@ class CodeEditor extends HTMLElement {
   save(name) {
     try {
       localStorage.setItem('text-' + name, this.source.value);
+      this.print('Saved text to localStorage: ' + name);
     } catch (e) {
       console.error(e);
     }
@@ -330,56 +374,237 @@ class CodeEditor extends HTMLElement {
 
 
   /**
-   * Set the syntax for the editor.
-   * @param {(source: string) => Tokens[]} tokenize A tokenize function.
-   * @param {Set<string>} A set of keywords.
+   * Push current state onto the custom undo stack.
    */
-  setSyntax(tokenize, keywords) {
-    this.syntax = { tokenize, keywords };
+  _pushState() {
+    if (this._undoStack.length > 10) {
+      this._undoStack.shift();
+    }
+    this._undoStack.push({
+      sel: this.selection,
+      str: this.text,
+    });
   }
 
 
   /**
-   * Handle custom tab behavior for one line of text.
-   * TODO This kinda sucks. Bugs if cursor is in white space at the start or end
-   *     of the line.
-   * @param {boolean} reverse Flag for forward or reverse indent.
+   * Set the syntax for the editor.
+   * @param {object} syntax The syntax.
+   * @param {(source: string) => Tokens[]} syntax.tokenize A tokenize function.
+   * @param {Set<string>} syntax.keywords A set of keywords.
+   * @param {number} syntax.tabSize The number of spaces to indent lines
+   * @param {char} syntax.comment The string to use when commenting a line. 
    */
-  indent(reverse) {
-    const sel = this.selection;
-    const str = this.source.value;
-    this._undoStack.push({ str, sel });
+  setSyntax(syntax) {
+    this.syntax = syntax;
+  }
 
-    let lineStart = sel[0];
 
-    while (str[lineStart] !== "\n" && lineStart > -1) {
-      lineStart--;
+  /**
+   * Handle indentation and de-indentation based on current selection.
+   * @param {boolean} reverse Flag for forward or reverse indent. Default is 
+   *     false (forward).
+   * @void
+   */
+  indent(reverse = false) {
+    this._pushState();
+    const selection = this.selection;
+    const selectedLines = this.selectedLines;
+
+    if (selection[0] === selection[1]) {
+      // Indent one line and move the caret accordingly.
+      const [pos, offset] = this._indentLine(selectedLines[0], reverse);
+      const caret = Math.max(pos, selection[0] + offset);
+      this.source.setSelectionRange(caret, caret);
+      this.raise('input');
+      return;
     }
-    lineStart += 1;
+
+    const startLineNo = selectedLines[0];
+    const endLineNo = selectedLines[selectedLines.length - 1];
+
+    // Keep selection if it fits on one line.
+    if (endLineNo === startLineNo) {
+      const [pos, offset] = this._indentLine(selectedLines[0], reverse);
+      const newSelectionStart = Math.max(pos, selection[0] + offset);
+      const newSelectionEnd = Math.max(pos, selection[1] + offset);
+      this.source.setSelectionRange(newSelectionStart, newSelectionEnd);
+      this.raise('input');
+      return;
+    }
+
+    // The beginning of the First selected line.
+    const firstLineStart = stringTools.lineStart(this.text, this.selectedLines[0]);
+    let totalOffset = 0;
+    let firstLineOffset = 0;
+
+    for (let i = 0; i < selectedLines.length; i++) {
+      const [, offset] = this._indentLine(selectedLines[i], reverse);
+      if (i === 0)
+        firstLineOffset = offset;
+
+      totalOffset += offset;
+    }
+
+    const newSelectionStart = Math.max(firstLineStart, selection[0] + firstLineOffset);
+    const newSelectionEnd = selection[1] + totalOffset;
+    this.source.setSelectionRange(newSelectionStart, newSelectionEnd);
+    this.raise('input');
+  }
+
+
+  /**
+   * Single line indent helper.
+   * @param {number} lineNo The line number to indent or de-indent.
+   * @param {reverse} reverse If true, de-indent the line.
+   * @return {[number, number]} A tuple with elem 0: the text position at the 
+   *     start of the indented line and elem 1: the total amount of chars
+   *     added – negative number if removed.
+   * @private
+   */
+  _indentLine(lineNo, reverse) {
+    const str = this.text;
+    const lineStart = stringTools.lineStart(str, this.linebreaks[lineNo]);
 
     if (reverse) {
       let backShiftAmt = 0;
-      while (
-        str[lineStart + backShiftAmt] === " " &&
-        backShiftAmt < this._tabSize
-      ) {
+      while (str[lineStart + backShiftAmt] === " " && backShiftAmt < this.syntax.tabSize) {
         backShiftAmt++;
       }
-
-      this.source.value =
-        str.slice(0, lineStart) + str.slice(lineStart + backShiftAmt);
-      const start = Math.max(sel[0] - backShiftAmt, lineStart);
-      this.source.setSelectionRange(start, sel[1] - backShiftAmt);
+      this.source.value = str.slice(0, lineStart) + str.slice(lineStart + backShiftAmt);
+      return [lineStart, -backShiftAmt];
     } else {
-      this.source.value =
-        str.slice(0, lineStart) + this._tabString + str.slice(lineStart);
-      this.source.setSelectionRange(
-        sel[0] + this._tabSize,
-        sel[1] + this._tabSize,
-      );
+      this.source.value = str.slice(0, lineStart) + this._tabString + str.slice(lineStart);
+      return [lineStart, this.syntax.tabSize];
+    }
+  }
+
+
+  /**
+   * Handle comment and and uncomment based on current selection.
+   * @void
+   */
+  comment() {
+    this._pushState();
+    const selection = this.selection;
+    const selectedLines = this.selectedLines;
+
+    // Comment one line and move the caret accordingly.
+    if (selection[0] === selection[1]) {
+      const [line, pos, offset] = this._commentLine(selectedLines[0]);
+      let caret = selection[0];
+      if (caret >= pos) {
+        caret = Math.max(line, caret + offset);
+      }
+      this.source.setSelectionRange(caret, caret);
+      this.raise('input');
+      return;
     }
 
+    const startLineNo = selectedLines[0];
+    const endLineNo = selectedLines[selectedLines.length - 1];
+
+    // Keep selection if it fits on one line.
+    if (endLineNo === startLineNo) {
+      const [line, pos, offset] = this._commentLine(selectedLines[0]);
+      let newStart = selection[0];
+      let newEnd = selection[1];
+
+      if (newStart >= pos) {
+        newStart = Math.max(line, newStart + offset);
+      }
+      if (newEnd >= pos) {
+        newEnd = Math.max(line, newEnd + offset);
+      }
+
+      this.source.setSelectionRange(newStart, newEnd);
+      this.raise('input');
+      return;
+    }
+
+    // The beginning of the first selected line.
+    const firstLineStart =
+      stringTools.lineStart(this.text, this.linebreaks[selectedLines[0]]);
+
+    let allCommented = true;
+    let depth = Infinity;
+
+    for (let i = 0; i < selectedLines.length; i++) {
+      const lineStart = stringTools.lineStart(this.text, this.linebreaks[selectedLines[i]]);
+      const [index, char] = stringTools.nextNonSpaceChar(this.text, lineStart);
+      if (index - lineStart < depth) {
+        depth = index - lineStart;
+      }
+      if (char !== this.syntax.comment) {
+        allCommented = false;
+      }
+    }
+
+    let totalOffset = 0;
+    let firstLineOffset = 0;
+
+    // If every selected line was already commented, I can safely uncomment 
+    // by deferring to the default behavior of _commentLine, otherwise I pass 
+    // the optional depth param, which will add a comment token at that position
+    // in each line.
+    for (let i = 0; i < selectedLines.length; i++) {
+      const [, , offset] = allCommented ?
+        this._commentLine(selectedLines[i]) : this._commentLine(selectedLines[i], depth);
+
+      if (i === 0) firstLineOffset += offset;
+      totalOffset += offset;
+    }
+
+    const newSelectionStart = Math.max(firstLineStart, selection[0] + firstLineOffset);
+    const newSelectionEnd = selection[1] + totalOffset;
+    this.source.setSelectionRange(newSelectionStart, newSelectionEnd);
     this.raise('input');
+  }
+
+
+  /**
+   * Single line comment helper. Will uncomment if the first char on the line 
+   * is the configured syntax.comment char, otherwise will add the comment 
+   * char plus a space.
+   * @param {number} lineNo The line number to comment or uncomment.
+   * @param {number} forceStart The in-line offset to force add a comment token
+   *     in the case of a multi line comment where all lines should receive a 
+   *     comment.
+   * @return {[number, number, number]} A tuple with elem 0: the text position 
+   *     at the start of the commented line, elem 1: the text index where the 
+   *     comment token was added or removed, and elem 2: the total amount of 
+   *     chars added – negative number if removed
+   * @private
+   */
+  _commentLine(lineNo, forceStart = -1) {
+    const str = this.text;
+    const lineStart = str.lastIndexOf('\n', this.linebreaks[lineNo] - 1) + 1;
+    let lineEnd = str.indexOf('\n', this.linebreaks[lineNo] + 1);
+    if (lineEnd === -1) lineEnd = str.length;
+
+    if (forceStart > -1) {
+      let index = lineStart + forceStart;
+      this.source.value = str.slice(0, index) + this.syntax.comment + ' ' + str.slice(index);
+      return [lineStart, index, 2];
+    }
+
+    let index = lineStart;
+    while (index < lineEnd && str[index] === ' ') {
+      index += 1;
+    }
+
+    if (str[index] === this.syntax.comment) {
+      if (str[index + 1] === ' ') {
+        this.source.value = str.slice(0, index) + str.slice(index + 2);
+        return [lineStart, index, -2]
+      } else {
+        this.source.value = str.slice(0, index) + str.slice(index + 1);
+        return [lineStart, index, -1]
+      }
+    }
+
+    this.source.value = str.slice(0, index) + this.syntax.comment + ' ' + str.slice(index);
+    return [lineStart, index, 2];
   }
 
 
@@ -422,13 +647,12 @@ class CodeEditor extends HTMLElement {
    * @private
    */
   updateCaret() {
-    const lineNo = this.currentLine;
+    const lineNo = this.lineAt(this.caretPosition);
     if (lineNo === -1) return;
     for (let i = 0; i < this.lines.length; i++) {
-      const line = this.lines[i];
-      line.classList.remove('caret-line');
-      if (i === lineNo) {
-        line.classList.add('caret-line');
+      this.lines[i].classList.remove('caret-line');
+      if (lineNo === i) {
+        this.lines[i].classList.add('caret-line');
       }
     }
   }

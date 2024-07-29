@@ -68,10 +68,15 @@ export const lists = {
   'nth': (ls, n) => ls[(n ?? ls.length - 1)],
   'has': (ls, member) => ls.indexOf(member) > -1,
   'fill-with': (len, val) => new Array(len).fill(val),
+  
   '->' : (data, ...functions) => {
     let d = data;
     for (let f of functions) {
-      d = d.map(f);
+      if (Array.isArray(d)) {
+        d = d.map(f);
+      } else {
+        d = f(d);
+      }
     }
     return d;
   }

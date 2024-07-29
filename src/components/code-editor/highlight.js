@@ -1,6 +1,8 @@
 /**
- * @file Logic for syntax highlighting.
+ * @file Syntax highlighting for the code editor.
  */
+import * as stringTools from './string-tools.js';
+
 
 /**
  * Create a span
@@ -8,25 +10,19 @@
  * @param {string} classList
  * @return {HTMLElement}
  */
-const span = (innerText, classList) => {
+function span(innerText, classList) {
   return Object.assign(document.createElement('span'), { innerText, classList });
 }
 
-/**
- * Fill a string with something.
- * @param {number} n The number of something.
- * @param {string} str The something.
- * @return {string} str repeated n times.
- */
-const pad = (n, str) => new Array(n + 1).join(str);
 
 /**
- * Make a string of spaces of length n.
- * @param {number} n The length of string to generate.
+ * Get an n-long string full of spaces.
+ * @param {number} n
+ * @return {string}
  */
-const space = (n) => pad(n, ' ');
-
-const countLinebreaks = (str) => str.split('\n').length;
+function space(n) {
+  return stringTools.fillString(n, ' ');
+}
 
 
 /**
@@ -38,14 +34,11 @@ const countLinebreaks = (str) => str.split('\n').length;
  * @return {HTMLElement[]}
  */
 export function highlight(sourceString, tokens, keywords) {
-  const lines = [];
-
+  const outputLines = [];
   let lineNumber = 0;
   let currentLine = span('', 'line');
 
-  if (sourceString.length === 0 || tokens.length === 0) return '';
-
-  // Add front padding to the highlighted line.
+  // Add front padding to the first line.
   currentLine.append(space(tokens[0].range[0]));
 
   for (let i = 0; i < tokens.length; i++) {
@@ -53,24 +46,26 @@ export function highlight(sourceString, tokens, keywords) {
 
     if (token.type === 'eof') continue;
 
+    // Make a new line.
     if (token.line !== lineNumber) {
-      lines.push(currentLine);
-      let linebreaks = 0;
+      outputLines.push(currentLine);
 
       while (lineNumber < token.line - 1) {
+        outputLines.push(span('', 'line'));
         lineNumber += 1;
-        linebreaks += 1;
-        lines.push(span(' ', 'line'));
       }
-
       lineNumber += 1;
-      linebreaks += 1;
 
       currentLine = span('', 'line');
-      const spaceToStart = token.range[0] - (tokens[i - 1]?.range[1] ?? 0) - linebreaks;
-      currentLine.append(space(spaceToStart));
+
+      // Search backwards for a line break.
+      const prevLineBreak = sourceString.lastIndexOf('\n', token.range[0]);
+
+      // Fill new line with leading space.
+      currentLine.append(space(token.range[0] - prevLineBreak - 1));
     }
 
+    // Make a syntax highlighted span for the token.
     const tokenSpan = span(sourceString.substring(...token.range), token.type);
 
     if (token.depth !== undefined) {
@@ -93,10 +88,10 @@ export function highlight(sourceString, tokens, keywords) {
     currentLine.append(space(spaceToNext));
   }
 
-  lines.push(currentLine);
+  outputLines.push(currentLine);
 
-  while (lines.length < countLinebreaks(sourceString)) {
-    lines.push(span('', 'line'));
+  while (outputLines.length < stringTools.countLinebreaks(sourceString)) {
+    outputLines.push(span('', 'line'));
   }
-  return lines;
+  return outputLines;
 }

@@ -3,7 +3,7 @@ import * as themes from './themes.js';
 import { format } from "./utils.js";
 import { Canvas } from './canvas.js';
 
-const THEME = themes.xcodeDark;
+const THEME = themes.light;
 
 const imagesBySource = window.imagesBySource = {};
 const files = window.files = [];
@@ -73,7 +73,7 @@ function ctx(editor = null, viewport = null) {
       'load-img': (url) => {
         if (imagesBySource[url]) {
           const img = imagesBySource[url];
-          const cnvs = new Cnvs(img.width, img.height);
+          const cnvs = new Canvas(img.width, img.height);
           cnvs.ctx.drawImage(img, 0, 0);
           return cnvs;
         }
@@ -116,7 +116,7 @@ window.addEventListener('DOMContentLoaded', () => {
   themes.applyTheme(THEME, document.documentElement, editor, viewport);
 
   const evalAll = () => {
-    const src = editor.sourceString;
+    const src = editor.text;
     const env = ctx(editor, viewport);
     const { ok, tree, result, error, tokens } = lisp.run(src, env);
     if (ok) {
@@ -127,7 +127,12 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  editor.setSyntax(lisp.tokenize, globals)
+  editor.setSyntax({
+    tokenize: lisp.tokenize,
+    keywords: globals,
+    comment: ';',
+    tabSize: 2,
+  });
 
   // Eval on control+enter
   editor.mapkey('ctrl+enter', evalAll);
@@ -141,9 +146,9 @@ window.addEventListener('DOMContentLoaded', () => {
   editor.mapkey('ctrl+-', () => editor.zoom(-0.1));
   editor.mapkey('ctrl+=', () => editor.zoom(+0.1));
   editor.mapkey('meta+s', () => editor.save('MAIN'));
-  editor.mapkey('ctrl+i', () => importer.click());
   editor.mapkey('ctrl+c', () => editor.clearLog());
-
+  editor.mapkey('meta+/', () => editor.comment());
+  editor.mapkey('ctrl+i', () => importer.click());
 
   viewport.mapkey('ctrl+-', () => viewport.zoom(-0.1));
   viewport.mapkey('ctrl+=', () => viewport.zoom(+0.1));
