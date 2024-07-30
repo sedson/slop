@@ -13,7 +13,7 @@
 ;; fill a canvas with a color
 
 (defn fill (cnv col)
-  (~cnv.rect 0 0 ~cnv.w ~cnv.h col)
+  (cnv.rect 0 0 cnv.w cnv.h col)
   cnv)
 
 ;; main canvas
@@ -23,13 +23,13 @@
 ;; concentric circles
 (def count 13)
 (for-each (.. 0 count) (fn (i)
-  (def radius (remap i 0 count ~cnv.w 10))
-  (~cnv.ellipseStroke (* .5 ~cnv.w) (* .5 ~cnv.h) radius radius (rand-col) 30)))
+  (def radius (remap i 0 count cnv.w 10))
+  (cnv.ellipseStroke (* .5 cnv.w) (* .5 cnv.h) radius radius (rand-col) 30)))
 
 
-(~viewport.clear)
+(viewport.clear)
 (view cnv)
-(~viewport.draw)
+(viewport.draw)
 
 (join "evaled sketch in " (- (now) start) " ms.")
 

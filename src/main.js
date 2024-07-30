@@ -119,6 +119,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const src = editor.text;
     const env = ctx(editor, viewport);
     const { ok, tree, result, error, tokens } = lisp.run(src, env);
+    console.log(tree);
     if (ok) {
       editor.print(format(result));
     } else {

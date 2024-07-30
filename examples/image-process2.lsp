@@ -1,11 +1,11 @@
 (def start (now))
 
-(~viewport.clear)
+(viewport.clear)
 
 (def img (load-img (nth files)))
 
-(def w ~img.w)
-(def h ~img.h)
+(def w img.w)
+(def h img.h)
 (print (join (nth files) " " w " x " h))
 
 (defn swap-red-green (col)
@@ -26,11 +26,11 @@
 (def inv (fnjs ((r g b a))
   ((- 255 r) (- 255 g) (- 255 b) a)))
 
-(~img.blur 4)
-(~img.pixFn (thresh 200))
+(img.blur 4)
+(img.pixFn (thresh 200))
 
 
 (view img)
-(~viewport.draw)
+(viewport.draw)
 
 (join "elapsed: " (- (now) start) " ms")

@@ -2,6 +2,7 @@
  * @file Syntax highlighting for the code editor.
  */
 import * as stringTools from './string-tools.js';
+import { Type } from '../../lang/types.mjs';
 
 
 /**
@@ -44,7 +45,7 @@ export function highlight(sourceString, tokens, keywords) {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
 
-    if (token.type === 'eof') continue;
+    if (token.type === Type.EOF) continue;
 
     // Make a new line.
     if (token.line !== lineNumber) {
@@ -66,7 +67,8 @@ export function highlight(sourceString, tokens, keywords) {
     }
 
     // Make a syntax highlighted span for the token.
-    const tokenSpan = span(sourceString.substring(...token.range), token.type);
+    const className = Type.getString(token.type).toLowerCase();
+    const tokenSpan = span(sourceString.substring(...token.range), className);
 
     if (token.depth !== undefined) {
       tokenSpan.classList.add(`depth-${token.depth % 5}`);

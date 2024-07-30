@@ -4,7 +4,7 @@
 
 (print (rtod ( / pi 3 )))
 
-(~viewport.clear)
+(viewport.clear)
 
 (def w 500)
 (def h 500)
@@ -15,7 +15,7 @@
 (~A.ellipse 250 250 50 50 'yellowgreen)
 
 (view A)
-(~viewport.draw)
+(viewport.draw)
 
 (defn x (p) (first p))
 (defn y (p) (first (rest p)))

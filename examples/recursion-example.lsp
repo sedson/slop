@@ -11,7 +11,7 @@
 (def w 1024)
 (def h 1024)
 (def cnvs (make-canvas w h 'main-canvas))
-(~cnvs.rect 0 0 w h "rgb(30, 35, 30)")
+(cnvs.rect 0 0 w h "rgb(30, 35, 30)")
 
 ;; Remap helper function
 (defn remap (val minIn maxIn minOut maxOut)
@@ -27,7 +27,7 @@
 (defn do-circle (iter size x y)
   (if (> iter INFINITY_LOL)
     ()
-    (_ (~cnvs.ellipseStroke x y size size col)
+    (_ (cnvs.ellipseStroke x y size size col)
        (def next-x (+ x (* 3 (sin (* pi (* x-freq (/ 1 iter) INFINITY_LOL))))))
        (def next-y (+ y (* 3 (cos (* pi (* y-freq (/ 1 iter) INFINITY_LOL))))))
        (do-circle (+ iter 1) (* size growth-factor) next-x next-y))))
@@ -36,12 +36,12 @@
 (do-circle 1 80 (* .5 w) (* .5 h))
 
 ;; Add some grain
-(~cnvs.noise 10)
+(cnvs.noise 10)
 
 ;; Plop the canvas on the viewport
-(~viewport.clear)
+(viewport.clear)
 (view cnvs)
-(~viewport.draw)
+(viewport.draw)
 
 ;; Optionally open the canvas in a new tab
 ;(open-new cnvs)

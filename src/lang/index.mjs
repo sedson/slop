@@ -1,14 +1,12 @@
+export { Type } from './types.mjs';
 export {
-  types,
   keywords,
   Context,
   run,
   tokenize,
   parse,
-  ast,
   interpret
-}
-from './tiny-lisp.mjs';
+} from './tiny-lisp.mjs';
 
 import { lists, utils, math } from './lib.mjs';
 

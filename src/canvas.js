@@ -52,7 +52,7 @@ export class Canvas {
     const w = Math.max(a.w, b.w);
     const h = Math.max(a.h, b.h);
 
-    const newCanvas = new Cnvs(w, h);
+    const newCanvas = new Canvas(w, h);
     newCanvas.img(a, 0, 0);
     newCanvas.blend(BlendModes[mode]);
     newCanvas.alpha(alpha);

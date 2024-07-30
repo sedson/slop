@@ -3,7 +3,7 @@ const { Test } = await import('./test.mjs');
 
 const test = (src, ctx = {}) => {
   try {
-    const { tokens, tree } = lang.parse(src);
+    const { tokens, tree } = lang.read(src);
     let res = null;
     const context = new lang.Context(ctx);
     for (let expr of tree) {
@@ -132,7 +132,7 @@ Test('toJS string-based compile', (assert) => {
   ];
 
   for (let expr of exprs) {
-    const tree = lang.ast(lang.tokenize(expr.lisp));
+    const tree = lang.parse(lang.tokenize(expr.lisp));
     const js = lang.toJS(tree[0]);
     assert.equal(js, expr.js, `LISP => ${expr.lisp}\n  JS   => ${js}\n`);
   }
