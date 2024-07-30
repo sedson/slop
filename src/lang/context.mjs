@@ -48,11 +48,12 @@ export class Context {
     return nestedVal;
   }
 
-  
+
   set(id, val, constant = false) {
     if (this._constants.has(id)) {
       error(`attempt to set constant label: ${id}`);
     }
+    
 
     this.env[id] = val;
     return val;

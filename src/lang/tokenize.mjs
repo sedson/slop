@@ -41,7 +41,7 @@ export function tokenize(input) {
     colStart = col;
     const char = next();
 
-    if (is.semicolon(char)) {
+    if (is.hash(char)) {
       while (!is.linebreak(peek()) && !reader.done()) {
         next();
       }

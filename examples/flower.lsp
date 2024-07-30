@@ -1,7 +1,7 @@
-;; Make a flower
+# Make a flower
 (def start (now))
 
-;; get a random hex color
+# get a random hex color
 (defn rand-col ()
   (def chan (fn ()
     (def n (hex (floor (* (rand) (** 2 8)))))
@@ -23,7 +23,7 @@
 
 (cnv.fill bg)
 
-;; Ring of circles
+# Ring of circles
 (defn ring (count rMaj rMin col)
   (for i (0 count)
     (def theta (* 2 pi i (/ 1 count)))

@@ -45,8 +45,8 @@
   (blend mixer.mode (blend mixer.mode img a mixer.opacity) b mixer.opacity))
 
 
-; (blended.noise 30)
-; (blended.threshold 100)
+# (blended.noise 30)
+# (blended.threshold 100)
 
 (view blended (+ img.w 20) 0)
 

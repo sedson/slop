@@ -131,7 +131,7 @@ window.addEventListener('DOMContentLoaded', () => {
   editor.setSyntax({
     tokenize: lisp.tokenize,
     keywords: globals,
-    comment: ';',
+    comment: '#',
     tabSize: 2,
   });
 

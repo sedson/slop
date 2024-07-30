@@ -1,26 +1,26 @@
-;; Core - fn, defn, if, cond, for, set
+# Core - fn, defn, if, cond, for, set
 
 (def start (now))
 
-;; map val from [minIn:maxIn] to [minOut:maxOut]
+# map val from [minIn:maxIn] to [minOut:maxOut]
 (defn remap (val minIn maxIn minOut maxOut)
   (+ (* (/ (- val minIn) (- maxIn minIn)) (- maxOut minOut)) minOut))
 
-;; random rgb string
+# random rgb string
 (defn chan () (floor (* (rand) 256)))
 (defn rand-col ()
   (join "rgb(" (chan) ', (chan) ', (chan) ")"))
-;; fill a canvas with a color
+# fill a canvas with a color
 
 (defn fill (cnv col)
   (cnv.rect 0 0 cnv.w cnv.h col)
   cnv)
 
-;; main canvas
+# main canvas
 (def cnv (make-canvas 512 512))
 (fill cnv (rand-col))
 
-;; concentric circles
+# concentric circles
 (def count 13)
 (for-each (.. 0 count) (fn (i)
   (def radius (remap i 0 count cnv.w 10))

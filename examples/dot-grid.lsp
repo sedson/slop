@@ -1,8 +1,8 @@
-;; Fill a canvas with a color
+# Fill a canvas with a color
 (defn fill-canvas (cnvs color)
     (cnvs.rect 0 0 cnvs.w cnvs.h color))
 
-;; Fill a canvas with gridded dots
+# Fill a canvas with gridded dots
 (defn dot-grid (cnvs x-count y-count radius color)
     (for x (0 x-count)
         (for y (0 y-count)
