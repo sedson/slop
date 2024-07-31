@@ -12,7 +12,7 @@ export function applyTheme(theme, ...objects) {
 
 export const xcodeDark = {
   // main background
-  background: "#2d2d2f",
+  background: "#292a30",
 
   // bg of element with focus
   focus: "#292a30",

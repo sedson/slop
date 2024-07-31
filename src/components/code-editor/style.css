@@ -27,6 +27,7 @@
   resize: none;
   position: relative;
   overflow: hidden;
+  line-height: 1.3em;
 }
 
 .source,
@@ -46,6 +47,7 @@
   overflow-wrap: unset;
   overflow-x: hidden;
   white-space: pre;
+  line-height: unset;
 }
 
 .source {

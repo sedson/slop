@@ -1,4 +1,4 @@
-const lang = await import('./tiny-lisp.mjs');
+const lang = await import('./index.mjs');
 const { Test } = await import('./test.mjs');
 
 const test = (src, ctx = {}) => {

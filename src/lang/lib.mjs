@@ -58,7 +58,6 @@ export const lists = {
     }0
     return list;
   },
-
   'map': (ls, fn) => ls.map(x => fn(x)),
   'for-each': (ls, fn) => ls.forEach(x => fn(x)),
   'filter': (ls, fn) => ls.filter(x => fn(x)),

@@ -1,9 +1,9 @@
 import * as lisp from "./lang/index.mjs";
 import * as themes from './themes.js';
-import { format } from "./utils.js";
 import { Canvas } from './canvas.js';
+import { CodeEditor } from './components/code-editor/code-editor.js';
 
-const THEME = themes.cooldark;
+const THEME = themes.light;
 
 const imagesBySource = window.imagesBySource = {};
 const files = window.files = [];
@@ -18,7 +18,7 @@ function ctx(editor = null, viewport = null) {
     // Add lisp to the scope.
     Object.assign(scope, {
       print: (...items) => {
-        items.forEach((item) => editor.print(format(item)));
+        items.forEach((item) => editor.print(lisp.prettyPrint(item)));
         return items[items.length - 1];
       },
     });
@@ -109,18 +109,26 @@ for (let word of Object.keys(lisp.lib)) {
 
 window.addEventListener('DOMContentLoaded', () => {
 
-  const editor = window.editor = document.getElementById('editor');
+  /** @type {CodeEditor} */
+  const editor = document.getElementById('editor');
+
+
   const viewport = window.viewport = document.getElementById('viewport');
   const importer = document.getElementById('file-import');
 
   themes.applyTheme(THEME, document.documentElement, editor, viewport);
 
-  const evalAll = () => {
+  const evalAll = (useLog = true) => {
+    viewport.clear();
+
     const src = editor.text;
     const env = ctx(editor, viewport);
     const { ok, tree, result, error, tokens } = lisp.run(src, env);
+
     if (ok) {
-      editor.print(format(result));
+      viewport.draw();
+      if (useLog)
+        editor.print(lisp.prettyPrint(result));
     } else {
       editor.error(error);
       console.error(error);
@@ -158,6 +166,7 @@ window.addEventListener('DOMContentLoaded', () => {
   viewport.mapkey('ctrl+j', () => viewport.pan(0, 50));
 
   importer.addEventListener('change', e => {
+    console.log("HI", e)
     for (let file of e.target.files) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -170,6 +179,38 @@ window.addEventListener('DOMContentLoaded', () => {
       };
     }
   });
+
+  let lastChange = Date.now();
+  const threshTime = 10;
+
+  editor.listen(editor, 'mousemove', (e) => {
+    if (e.metaKey) {
+      const [token, index] = editor.tokenAt(editor.caretPosition);
+
+      if (token.type === lisp.Type.NUM) {
+        const n = Date.now();
+        const update = (n - lastChange) > threshTime;
+        if (update) {
+          lastChange = n;
+          evalAll(false);
+        }
+
+        let delta = e.movementX;
+
+        if (e.shiftKey) {
+          delta /= 100;
+        }
+
+        let newVal = token.val + delta;
+        if (newVal.toString().split('.')[1]?.length > 4) {
+          newVal = newVal.toFixed(4);
+        }
+
+        editor.replaceToken(index, newVal, update, true);
+
+      }
+    }
+  })
 
   editor.load('MAIN');
 });

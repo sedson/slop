@@ -9,16 +9,16 @@ export const Type = {
   R_BRACE: Symbol('R_BRACE'),
   L_BRACKET: Symbol('L_BRACKET'),
   R_BRACKET: Symbol('R_BRACKET'),
+  EOF: Symbol('EOF'),
+  
   NUM: Symbol('NUM'),
   STR: Symbol('STR'),
   KEY: Symbol('KEY'),
-  LITERAL: Symbol('LITERAL'),
   COMMENT: Symbol('COMMENT'),
   IDENTIFIER: Symbol('IDENTIFIER'),
   LIST: Symbol('LIST'),
   DICT: Symbol('DICT'),
   UNKNOWN: Symbol('UNKNOWN'),
-  EOF: Symbol('EOF'),
 };
 
 const _symbolToString = new Map(Object.entries(Type).map(([k, v]) => [v, k]));

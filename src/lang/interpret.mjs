@@ -1,5 +1,5 @@
 import { Type } from './types.mjs';
-import { SpecialWords } from './tiny-lisp.mjs';
+import { SpecialWords } from './index.mjs';
 import { Context } from './context.mjs';
 
 function error (message) {
@@ -34,6 +34,13 @@ export const core = {
 };
 
 
+/**
+ * Extensions functions.
+ * TODO : if macros good, don't really need this.
+ */
+export const extensions = {};
+
+
 /** 
  * Run the interpreter on an expression.
  * @param {ExpressionNode} expression 
@@ -46,7 +53,7 @@ export function interpret(expression, context) {
   }
 
   // Parsed literal.
-  if (expression.type === Type.LITERAL)
+  if (expression.type === Type.NUM || expression.type === Type.STR)
     return expression.val;
 
   // Self-evaluating key word.
@@ -88,6 +95,11 @@ export function interpret(expression, context) {
   // Check for core functions.
   if (first in core) {
     return core[first](elements.slice(1), context);
+  }
+
+  // Check for extensions.
+  if (first in extensions) {
+    return extensions[first](elements.slice(1), context);
   }
 
   // Interpret each element of the list.

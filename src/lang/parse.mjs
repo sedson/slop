@@ -96,7 +96,7 @@ function atom(reader) {
   case Type.NUM:
   case Type.STR:
     return {
-      type: Type.LITERAL,
+      type: token.type,
       val: token.val,
       range: token.range
     };

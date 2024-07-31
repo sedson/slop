@@ -28,7 +28,7 @@ const markup = `
 `.trim();
 
 
-class CodeEditor extends HTMLElement {
+export class CodeEditor extends HTMLElement {
   constructor() {
     super();
     this.root = this.attachShadow({ mode: 'open' });
@@ -82,8 +82,16 @@ class CodeEditor extends HTMLElement {
 
     /**
      * The array of the highlighted text.
+     * @type {HTMLElement[]}
      */
     this.lines = [];
+
+
+    /**
+     * The list of tokens
+     * @type {Token[]}
+     */
+    this.tokens = [];
 
     /**
      * For syntax highlighting. An object with a tokenize function and a 
@@ -207,6 +215,33 @@ class CodeEditor extends HTMLElement {
 
 
   /**
+   * Get token containing the text offset ndx.
+   * @param {number} ndx An index in the source string.
+   * @return {Token} The token data.
+   */
+  tokenAt(ndx) {
+    let left = 0;
+    let right = this.tokens.length - 1;
+    while (left <= right) {
+      const mid = left + Math.floor((right - left) / 2);
+      const token = this.tokens[mid];
+      const [start, end] = token.range;
+
+      if (start <= ndx && ndx < end)
+        return [token, mid];
+
+      if (ndx < start) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    return [false, -1];
+  }
+
+
+  /**
    * A list of all currently selected line numbers.
    * @type {number[]}
    */
@@ -289,8 +324,8 @@ class CodeEditor extends HTMLElement {
 
   update() {
     if (this.syntax.tokenize) {
-      const tokens = this.syntax.tokenize(this.text);
-      const highlighted = highlight(this.text, tokens, this.syntax.keywords);
+      this.tokens = this.syntax.tokenize(this.text);
+      const highlighted = highlight(this.text, this.tokens, this.syntax.keywords);
       this.setHighlight(highlighted);
     }
     this.updateCaret();
@@ -656,6 +691,37 @@ class CodeEditor extends HTMLElement {
     }
   }
 
+
+  replaceToken(tokenIndex, value, pushState = false, selectToken = true) {
+    if (tokenize < 0 || tokenIndex > this.tokens.length) {
+      return;
+    }
+
+    if (pushState) {
+      this._pushState();
+    }
+
+    console.log({ tokenIndex, value });
+
+    const str = this.text;
+    const sel = this.selection;
+
+    const token = this.tokens[tokenIndex];
+    const before = str.slice(0, token.range[0]);
+    const after = str.slice(token.range[1]);
+    console.log(before + value + after)
+
+    this.source.value = before + value + after;
+    if (selectToken) {
+      const start = token.range[0]
+      const end = token.range[0] + value.toString().length;
+      this.source.setSelectionRange(start, end, "backward");
+    } else {
+      this.source.setSelectionRange(...sel);
+    }
+
+    this.raise('input');
+  }
 
   /**
    * Clear the log text.
