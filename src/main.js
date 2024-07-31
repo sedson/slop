@@ -3,7 +3,7 @@ import * as themes from './themes.js';
 import { format } from "./utils.js";
 import { Canvas } from './canvas.js';
 
-const THEME = themes.light;
+const THEME = themes.cooldark;
 
 const imagesBySource = window.imagesBySource = {};
 const files = window.files = [];
@@ -119,7 +119,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const src = editor.text;
     const env = ctx(editor, viewport);
     const { ok, tree, result, error, tokens } = lisp.run(src, env);
-    console.log(tree);
     if (ok) {
       editor.print(format(result));
     } else {

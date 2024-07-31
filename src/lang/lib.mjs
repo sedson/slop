@@ -14,12 +14,16 @@ export const utils = {
   '_': (...args) => args[args.length - 1] || null,
   'ls': (...args) => args,
   'call': (fn, ...args) => fn(...args),
+  'console/log': (...args) => console.log(...args),
 };
 
 
 export const math = {
   '*': (...args) => args.reduce((a, b) => a * b, 1),
-  '+': (...args) => args.reduce((a, b) => a + b, 0),
+  '+': (...args) => {
+    // console.log('+', args, args.reduce((a, b) => a + b, 0));
+    return args.reduce((a, b) => a + b, 0);
+  },
   '-': (...args) => (args.length === 1) ? -args[0] : args.slice(1).reduce((a, b) => a - b, args[0]),
   '/': (...args) => args.slice(1).reduce((a, b) => a / b, args[0]),
   'max': (...args) => Math.max(...args),
@@ -47,11 +51,11 @@ export const math = {
 }
 
 export const lists = {
-  '..': (a, b) => {
+  'range': (a, b) => {
     let list = [];
     for (let i = a; i < b; i++) {
       list.push(i);
-    }
+    }0
     return list;
   },
 
@@ -65,7 +69,12 @@ export const lists = {
   },
   'first': (ls) => ls[0] ?? null,
   'rest': (ls) => ls.slice(1),
-  'nth': (ls, n) => ls[(n ?? ls.length - 1)],
+  'nth': (ls, n) => {
+    if (n < 0) {
+      return ls[Math.max(ls.length + n, 0)];
+    }
+    return ls[(n ?? ls.length - 1)];
+  },
   'has': (ls, member) => ls.indexOf(member) > -1,
   'fill-with': (len, val) => new Array(len).fill(val),
   
@@ -79,5 +88,21 @@ export const lists = {
       }
     }
     return d;
+  },
+
+  'keys': (obj) => Object.keys(obj),
+  'values': (obj) => Object.values(obj),
+  'entries': (obj) => Object.entries(obj),
+  'get': (obj, key) => (obj[key]),
+  'put': (obj, key, val) => {
+    console.log("PUT", key, val);
+    obj[key] = val;
+    return val;
+  },
+
+  'zip-dict': (keys, vals, def = 0) => {
+    return Object.fromEntries(keys.map((x, i) => {
+      return [x, vals[i] ?? 0];
+    }));
   }
 }

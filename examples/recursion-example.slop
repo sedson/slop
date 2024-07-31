@@ -44,6 +44,6 @@
 (viewport.draw)
 
 # Optionally open the canvas in a new tab
-;(open-new cnvs)
+# (open-new cnvs)
 (print (growth-factor x-freq y-freq))
 (join "sketch took " (/ (- (now) start) 1000) " seconds")

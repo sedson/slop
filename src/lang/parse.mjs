@@ -1,16 +1,16 @@
 import { Type } from "./types.mjs";
 import { Reader } from "./parsing-utils.mjs";
 
-function error (message, token) {
+function error(message, token) {
   const location = token ? ` [ line ${token.line}, col ${token.col} ]` : '';
-  throw new Error( `parse – ${message + location}`);
+  throw new Error(`parse – ${message + location}`);
 }
 
 /**
  * Match the current reader token with a desired type.
  * @param {Reader} reader
  * @param {Type} type
- */ 
+ */
 function match(reader, type) {
   if (reader.done()) { error('unexpected EOF', reader.prev()); }
   if (reader.peek().type === type) {
@@ -36,7 +36,7 @@ function expression(reader) {
 
   if (match(reader, Type.L_BRACE)) {
     if (match(reader, Type.R_BRACE)) {
-      return { _hashmap: true };
+      return { type: Type.DICT, val: {} };
     }
     return dict(reader);
   }
@@ -81,17 +81,24 @@ function atom(reader) {
   case Type.IDENTIFIER:
     return {
       type: Type.IDENTIFIER,
-        val: token.val,
-        subpath: token.subpath,
-        range: token.range
+      val: token.val,
+      subpath: token.subpath,
+      range: token.range
     };
+
+  case Type.KEY:
+    return {
+      type: Type.KEY,
+      val: token.val,
+      range: token.range,
+    }
 
   case Type.NUM:
   case Type.STR:
     return {
       type: Type.LITERAL,
-        val: token.val,
-        range: token.range
+      val: token.val,
+      range: token.range
     };
 
   case Type.COMMENT:

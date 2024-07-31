@@ -98,6 +98,14 @@ export function tokenize(input) {
       continue;
     }
 
+    if (is.colon(char)) {
+      while(is.word(peek()) && !reader.done()) {
+        next(); 
+      }
+      push(Type.KEY, grab(), grab());
+      continue;
+    }
+
     if (is.digit(char)) {
       while (is.number(peek()) && !reader.done()) {
         next();

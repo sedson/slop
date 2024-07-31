@@ -34,7 +34,6 @@ class CodeEditor extends HTMLElement {
     this.root = this.attachShadow({ mode: 'open' });
     this.root.innerHTML = markup;
 
-    this.editor = this.root.querySelector('.editor');
     this.source = this.root.querySelector('.source');
     this.display = this.root.querySelector('.display');
     this.displayText = this.root.querySelector('.display-text');
@@ -624,7 +623,7 @@ class CodeEditor extends HTMLElement {
    */
   zoom(amt) {
     this._fontSize += amt;
-    this.editor.style.fontSize = this._fontSize + 'rem';
+    this.style.fontSize = this._fontSize + 'rem';
   }
 
 

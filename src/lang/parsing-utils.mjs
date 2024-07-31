@@ -38,6 +38,8 @@ export const is = {
   linebreak: (char) => char === '\n',
   hash: (char) => char === '#',
   semicolon: (char) => char === ';',
+  colon: (char) => char === ':',
+  comma: (char) => char === ',',
   dot: (char) => char === '.',
   number: (char) => is.digit(char) || is.dot(char),
   quote: (char) => char === `"`,

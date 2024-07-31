@@ -6,6 +6,14 @@ function error (message) {
   throw new Error( `interpret – ${message}`);
 }
 
+function isNumber (val) {
+  return typeof val === 'number';
+}
+
+function isString (val) {
+  return typeof val === 'number';
+}
+
 
 /**
  * The core functions.
@@ -18,8 +26,11 @@ export const core = {
   if: _if,
   cond: _cond,
   for: _for,
-  let: _let,
   set: _set,
+  quote: _quote,
+  eval: _eval,
+  key: _key,
+  // let: _let,
 };
 
 
@@ -29,14 +40,17 @@ export const core = {
  * @param {Context} The context to execute in.
  */
 export function interpret(expression, context) {
-
   // Raw literal.
-  if (typeof expression === 'number' || typeof expression === 'string') {
+  if (isNumber(expression) || isString(expression)) {
     return expression;
   }
 
   // Parsed literal.
   if (expression.type === Type.LITERAL)
+    return expression.val;
+
+  // Self-evaluating key word.
+  if (expression.type === Type.KEY)
     return expression.val;
 
   // Keyword check.
@@ -58,8 +72,10 @@ export function interpret(expression, context) {
     return newMap;
   }
 
-  if (expression.type !== Type.LIST)
+  if (expression.type !== Type.LIST) {
+    console.log('PROBLEM', expression);
     error('Unhandled non-list case');
+  }
 
   // Create a new context if needed.
   if (!context) context = new Context();
@@ -96,14 +112,19 @@ function _def(elements, context) {
   return context.set(label, interpret(value, context), true);
 }
 
-
 /**
  * Define a dynamic variable.
  */
 function _var(elements, context) {
   const label = elements[0].val;
   const value = elements[1];
-  return context.set(label, interpret(value, context), true);
+  return context.set(label, interpret(value, context), false);
+}
+
+function _set(elements, context) {
+  const label = elements[0].val;
+  const value = elements[1];
+  return context.set(label, interpret(value, context), false, elements[0].subpath);
 }
 
 
@@ -114,6 +135,7 @@ function _var(elements, context) {
 function _fn(elements, context) {
   const params = elements[0];
   const body = elements.slice(1);
+  console.log("BODY", body);
 
   return (...args) => {
     const localContext = new Context(context.env, params.elements, args);
@@ -140,13 +162,11 @@ function _fnBasic(elements, context) {
 }
 
 
-
 /**
  * Define a function.
  */ 
 function _defn(elements, context) {
   const label = elements[0].val;
-
   const func = _fn(elements.slice(1), context);
   func.funcName = label;
   return context.set(label, func);
@@ -196,17 +216,63 @@ function _for(elements, context) {
 }
 
 
-
+/**
+ * TODO Tests!
+ */ 
 function _cond(elements, context) {
   for (let condition of elements) {
-    if (interpret(condition[0], context)) {
-      return interpret(condition[1], context);
+    console.log(condition)
+    if (interpret(condition.elements[0], context)) {
+      return interpret(condition.elements[1], context);
     }
   }
   return null;
 }
 
 
+/**
+ * TODO Tests!
+ */ 
+function _quote(elements, context) {
+  if (isNumber(elements) || isString(elements)) {
+    return elements;
+  }
+
+  if (elements.val !== undefined) {
+    return elements;
+  }
+
+  if (elements.type === Type.LIST) {
+    return {
+      type: Type.LIST,
+      elements: elements.elements.map(_quote),
+    };
+  }
+
+  if (elements[0].type === Type.LIST) {
+    return {
+      type: Type.LIST,
+      elements: elements[0].elements.map(_quote),
+    };
+  }
+
+  return elements[0];
+}
+
+
+/**
+ * TODO Tests!
+ */ 
+function _eval(elements, context) {
+  const expr = interpret(elements[0], context);
+  console.log('EVAL', expr);
+  return interpret(expr, context);
+}
+
 
 function _let(elements, context) {}
-function _set(elements, context) {}
+
+
+function _key(elements, context) {
+  return ':' + interpret(elements[0], context);
+}

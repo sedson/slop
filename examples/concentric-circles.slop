@@ -32,7 +32,3 @@
 (viewport.draw)
 
 (join "evaled sketch in " (- (now) start) " ms.")
-
-
-
-

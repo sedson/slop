@@ -11,6 +11,7 @@ export const Type = {
   R_BRACKET: Symbol('R_BRACKET'),
   NUM: Symbol('NUM'),
   STR: Symbol('STR'),
+  KEY: Symbol('KEY'),
   LITERAL: Symbol('LITERAL'),
   COMMENT: Symbol('COMMENT'),
   IDENTIFIER: Symbol('IDENTIFIER'),

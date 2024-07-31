@@ -3,6 +3,16 @@
   src: url('/fonts/CommitMono-400-Regular.otf') format('opentype');
 }
 
+@font-face {
+  font-family: Recursive;
+  src: url('/fonts/RecursiveMonoLnrSt-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: Olivetti;
+  src: url('/fonts/Px437_OlivettiThin_8x16.ttf') format('truetype');
+}
+
 * { 
   box-sizing: border-box;
   margin: 0;
@@ -20,7 +30,7 @@ body {
   background: var(--background);
   width: 100vw;
   height: 100vh;
-  font-family: Commit, monospace;
+  font-family: Recursive, monospace;
   padding-top: 2rem;
 }
   
@@ -62,7 +72,7 @@ body {
 }
 
 .underline {
-  border-bottom: 1px solid currentColor;
+  border-bottom: 2px solid currentColor;
 }
 
 .fs {
