@@ -7,7 +7,7 @@ import { tokenize } from './tokenize.mjs';
 import { parse } from './parse.mjs';
 import { interpret, core, extensions } from './interpret.mjs';
 import { prettyPrint } from './pretty-print.mjs';
-import { utils, math, lists } from './lib.mjs';
+import { utils, math, lists, prng } from './lib.mjs';
 
 export const SpecialWords = {
   nil: undefined,
@@ -18,9 +18,9 @@ export const SpecialWords = {
   else: true
 };
 
-export const lib = { ...utils, ...math, ...lists };
+export const lib = { ...utils, ...math, ...lists, ...prng };
 
-export { Type, Context, tokenize, parse, interpret, prettyPrint };
+export { Type, Context, tokenize, parse, interpret, prettyPrint, extensions };
 
 /**
  * Keywords for syntax highlight.
@@ -61,5 +61,12 @@ export function run(source, context) {
   } catch (e) {
 
     return { ok: false, error: e, tokens};
+  }
+}
+
+
+export function registerExtension(name, fn) {
+  if (!(name in extensions)) {
+    extensions[name] = fn;
   }
 }

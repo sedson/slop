@@ -1,5 +1,6 @@
 # Make a flower
 (def start (now))
+(seed 11)
 
 # get a random hex color
 (defn rand-col ()
@@ -33,12 +34,10 @@
 
 
 (def count (+ (floor (* (rand) 6)) 4))
-(ring count 240 180 fg)
+(ring count 284 184 fg)
 
 (cnv.ellipse (/ w 2) (/ h 2) 160 160 bg)
 
-(viewport.clear)
 (view cnv)
-(viewport.draw)
 
 (join "eval sketch in " (- (now) start) " ms")

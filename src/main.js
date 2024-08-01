@@ -3,7 +3,10 @@ import * as themes from './themes.js';
 import { Canvas } from './canvas.js';
 import { CodeEditor } from './components/code-editor/code-editor.js';
 
-const THEME = themes.light;
+// Import the the to-js compiler extensions.
+import './lang/extensions/to-js.mjs';
+
+const THEME = themes.xcodeDark;
 
 const imagesBySource = window.imagesBySource = {};
 const files = window.files = [];
@@ -106,6 +109,9 @@ const globals = new Set(lisp.keywords);
 for (let word of Object.keys(lisp.lib)) {
   globals.add(word);
 }
+for (let word of Object.keys(lisp.extensions)) {
+  globals.add(word);
+}
 
 window.addEventListener('DOMContentLoaded', () => {
 
@@ -115,6 +121,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const viewport = window.viewport = document.getElementById('viewport');
   const importer = document.getElementById('file-import');
+  const opener = document.getElementById('file-open');
+
 
   themes.applyTheme(THEME, document.documentElement, editor, viewport);
 
@@ -166,7 +174,6 @@ window.addEventListener('DOMContentLoaded', () => {
   viewport.mapkey('ctrl+j', () => viewport.pan(0, 50));
 
   importer.addEventListener('change', e => {
-    console.log("HI", e)
     for (let file of e.target.files) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -180,8 +187,36 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+  opener.addEventListener('change', e => {
+    console.log(e);
+    for (let file of e.target.files) {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.onloadend = e => {
+        editor.source.value = reader.result;
+        editor.update();
+        editor.save('MAIN');
+      };
+    }
+  });
+
+  document.getElementById('save-text').addEventListener('click', e => {
+    const blob = new Blob([editor.text], { type: 'text/plain' });
+
+    // Create a URL for the Blob
+    const url = URL.createObjectURL(blob);
+
+    // Create an anchor element
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'script.slop';
+
+    link.click();
+  });
+
   let lastChange = Date.now();
-  const threshTime = 10;
+  const threshTime = 60;
 
   editor.listen(editor, 'mousemove', (e) => {
     if (e.metaKey) {

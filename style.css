@@ -35,7 +35,7 @@ body {
   background: var(--background);
   width: 100vw;
   height: 100vh;
-  font-family: JetBrains, monospace;
+  font-family: Recursive, monospace;
   padding-top: 3rem;
 }
   
@@ -77,7 +77,7 @@ body {
 }
 
 .underline {
-  border-bottom: 2px solid currentColor;
+  border-bottom: 1px solid currentColor;
 }
 
 .fs {

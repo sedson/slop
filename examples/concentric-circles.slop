@@ -1,5 +1,3 @@
-# Core - fn, defn, if, cond, for, set
-
 (def start (now))
 
 # map val from [minIn:maxIn] to [minOut:maxOut]
@@ -21,14 +19,11 @@
 (fill cnv (rand-col))
 
 # concentric circles
-(def count 13)
-(for-each (.. 0 count) (fn (i)
-  (def radius (remap i 0 count cnv.w 10))
-  (cnv.ellipseStroke (* .5 cnv.w) (* .5 cnv.h) radius radius (rand-col) 30)))
+(def count 9)
+(for-each (range 0 count) (fn (i)
+  (def radius (remap i 0 count cnv.w 30.3))
+  (cnv.ellipseStroke (* 0.5 cnv.w) (* 0.5 cnv.h) radius radius (rand-col) 45)))
 
-
-(viewport.clear)
 (view cnv)
-(viewport.draw)
 
 (join "evaled sketch in " (- (now) start) " ms.")

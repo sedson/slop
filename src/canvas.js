@@ -29,7 +29,7 @@ export class Canvas {
     this.ctx.putImageData(imgData, 0, 0);
   }
 
-  pixFn(fn) {
+  mapPixels(fn) {
     const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const pixels = imgData.data;
     for (let i = 0; i < pixels.length; i += 4) {

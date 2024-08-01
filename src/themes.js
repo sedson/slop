@@ -58,6 +58,23 @@ export const light = {
   pink: "#d33682",
 };
 
+export const dark = {
+  background: "#000000",
+  focus: "#000000",
+  currentline: "#ffffff10",
+  selection: "#1a1a1a",
+  edge: "#1a1a1a",
+  text: "#d8d8d8",
+  comments: "#535353",
+  red: "#e54126",
+  orange: "#fe8d00",
+  yellow: "#cd9a62",
+  green: "#d5eb28",
+  blue: "#78c5fa",
+  purple: "#bdbdf8",
+  pink: "#f893c4",
+};
+
 export const cooldark = {
   background: "#0E1415",
   focus: "#0E1415",

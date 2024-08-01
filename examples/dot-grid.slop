@@ -11,29 +11,24 @@
             (cnvs.ellipse cx cy radius radius color))))
 
 
-(viewport.clear)
-
-(def cnvs (canvas 1024 1024))
-(def cnvs2 (canvas 1024 1024))
+(def cnvs (Canvas.new 1024 1024))
+(def cnvs2 (Canvas.new 1024 1024))
 
 (fill-canvas cnvs "hotpink")
 
 (def scale 2)
 
-(dot-grid cnvs (* scale 4) (* scale 4) 30 "red")
-(dot-grid cnvs 4 4 70 "hotpink")
-(dot-grid cnvs 4 4 60 "teal")
+(dot-grid cnvs (* scale 4) (* scale 4) 51 "red")
+(dot-grid cnvs 4 4 97 "hotpink")
+(dot-grid cnvs 4 4 82 "teal")
 (view cnvs)
 
 
 (fill-canvas cnvs2 "lime")
-(dot-grid cnvs2 8 8 50 "green")
+(dot-grid cnvs2 8 8 70 "orange")
 (view cnvs2 (+ 1024 64) 0)
 
-(def out (blend "overlay" cnvs cnvs2 1))
+(def out (blend "difference" cnvs cnvs2 0.43))
 
-(out.noise 20 false)
+# (out.noise 20 false)
 (view out 0 (+ 1024 64))
-
-(viewport.draw)
-"done"

@@ -2,8 +2,37 @@
  * @file Provide basic library functions for the tiny lisp.
  */ 
 
+const A = 16807;
+const MOD = (2 ** 32) - 1;
+
+function PRNG (seed) {
+  let _seed = Math.abs(seed % MOD);
+  return () => {
+    _seed = (A *_seed) % MOD;
+    return (_seed - 1) / MOD;
+  }
+} 
+
+export const prng = {
+  _prng: PRNG(1),
+  'seed': (num) => prng._prng = PRNG(num),
+  'rand': () => prng._prng(),
+};
+
+
 export const utils = {
-  'join': (...args) => args.join(''),
+  'join': (...args) => { 
+    if (args.length === 1 && Array.isArray(args[0])) {
+      return args[0].join('');
+    }
+    return args.join('');
+  },
+  'join-c': (c ,...args) => {
+    if (args.length === 1 && Array.isArray(args[0])) {
+      return args[0].join(c);
+    }
+    return args.join(c);
+  },
   'print': (...args) => console.log(...args),
   'len': (...args) => {
     if (args.length === 1) {
@@ -41,7 +70,6 @@ export const math = {
   '<': (a, b) => a < b,
   '<=': (a, b) => a <= b,
   '>=': (a, b) => a >= b,
-  'rand': () => Math.random(),
   'hex': (a) => (a & 0xff).toString(16),
   '<<': (a, b) => a << b,
   '>>': (a, b) => a >> b,
@@ -62,11 +90,14 @@ export const lists = {
   'for-each': (ls, fn) => ls.forEach(x => fn(x)),
   'filter': (ls, fn) => ls.filter(x => fn(x)),
   'list-join': (ls, delim = " ") => ls.join(delim),
+  'fold': (ls, fn, init) => ls.reduce(fn, init),
+  'fold-self': (ls, fn) => ls.slice(1).reduce(fn, ls[0]),
   'push': (ls, val) => {
     ls.push(val);
     return val;
   },
   'first': (ls) => ls[0] ?? null,
+  'last': (ls) => ls[ls.length - 1] ?? null,
   'rest': (ls) => ls.slice(1),
   'nth': (ls, n) => {
     if (n < 0) {

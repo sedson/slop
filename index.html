@@ -13,24 +13,31 @@
   <div class="menu-bar">
     <ul class="inline-list options">
       <li>SLOP</li>
+      <li id="eval">
+        <span><span class="underline">E</span>val</span>
+      </li>
       <li>
-        <label for="file-import"><span class="underline">I</span>MPORT</label>
+        <label for="file-import">Open <span class="underline">i</span>mage(s)</label>
         <input type="file" name="file-import" id="file-import" multiple>  
       </li>
-      <li id="eval">
-        <span><span class="underline">E</span>VAL</span>
+      <li>
+        <label for="file-open"><span class="underline">O</span>pen</label>
+        <input type="file" name="file-open" id="file-open">
+      </li>
+      <li id="save-text">
+        <span><span class="underline">S</span>ave</span>
       </li>
     </ul>
   </div>
   <div class="fs pane h-split">
-    
+     <div class="pane half border-right">
+      <viewport-canvas id="viewport"></viewport-canvas>
+    </div>
     <div class="pane half border-right">
       <code-editor id="editor"></code-editor>
     </div>
 
-    <div class="pane half">
-      <viewport-canvas id="viewport"></viewport-canvas>
-    </div>
+   
 
   </div>
 </body>

@@ -93,7 +93,7 @@
 }
 .depth-2,
 .depth-2 {
-  color: var(--blue);
+  color: var(--pink);
 }
 .depth-3,
 .depth-3 {
@@ -101,7 +101,7 @@
 }
 .depth-4,
 .depth-4 {
-  color: var(--orange);
+  color: var(--blue);
 }
 .dynamic {
   color: var(--green);

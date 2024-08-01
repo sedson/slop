@@ -1,50 +1,51 @@
 (def start (now))
 
+# grab image
 (def img (load-img (nth files)))
+
 (def w img.w)
 (def h img.h)
 
-(defn h-stripe (cnvs width color)
-  (def count (/ cnvs.h width 2))
+# stripe helper
+(defn stripe (cnvs width color vertical)
+  (def count (/ (if vertical cnvs.w cnvs.h) width 2))
   (for i (0 count)
-    (def y (* i 2 width))
-      (cnvs.rect 0 y cnvs.w width color)))
+    (def n (* i 2 width))
+      (if vertical
+          (cnvs.rect n 0 width cnvs.h color)
+          (cnvs.rect 0 n cnvs.w width color))))
 
-(defn v-stripe (cnvs width color)
-  (def count (/ cnvs.w width 2))
-  (for i (0 count)
-    (def x (* i 2 width))
-      (cnvs.rect x 0 width cnvs.h color)))
 
-(def stripe-size (clamp 31 2 500))
-(def blur-radius (clamp 8 0 100))
+(def stripe-size (clamp 21.65 2 500))
+(def blur-radius (clamp 5.4900 0 100))
 
-(def a (-> (Canvas.new w h)
-           (fn (x) (x.fill 'white))
-           (fn (x) (h-stripe x stripe-size 'black))
-           (fn (x) (x.blur blur-radius))))
 
-(def b (-> (Canvas.new w h)
-           (fn (x) (x.fill 'white))
-           (fn (x) (v-stripe x stripe-size 'black))
-           (fn (x) (x.blur blur-radius))))
+(defn stripe-canvas (vertical)
+  (-> (Canvas.new w h)
+      (fn (x) (x.fill "white"))
+      (fn (x) (stripe x stripe-size "black" vertical))
+      (fn (x) (x.blur blur-radius))))
+
+(def a (stripe-canvas false))
+(def b (stripe-canvas true))
 
 
 (view img)
 (view a 0 (+ h 20))
 (view b (+ w 20) (+ h 20))
 
+(def mixer { 
+  :mode "difference"
+  :opacity 1 
+})
+
+(def composite 
+  (fold-self (img a b)
+    (fn (out next) 
+      (blend (get mixer :mode) out next (get mixer :opacity)))))
 
 
-(def mixer { :mode 'difference :opacity 1 })
+(composite.threshold 67.26)
+(view composite (+ img.w 20) 0)
 
-(def blended
-  (blend mixer.:mode (blend mixer.:mode img a mixer.:opacity) b mixer.:opacity))
-
-
-# (blended.noise 30)
-(blended.threshold 80)
-
-(view blended (+ img.w 20) 0)
-# (open-new blended)
 (join "elapsed: " (- (now) start) " ms")
