@@ -11,23 +11,23 @@
 (defn swap-red-green (col)
   ((g col) (r col) (b col) (a col)))
 
-(def luma (fnjs ((r g b a))
+(def luma (fnjs ([r g b a])
   (def n (/ 1 255))
   (def lum (+ (* r n 0.2126) (* g n 0.7152) (* b n 0.0722)))
   (def lum255 (floor (* lum 255)))
-  (lum255 lum255 lum255 a)))
+  [lum255 lum255 lum255 a]))
 
 (defn thresh (level)
-  (fnjs ((r g b a))
+  (fnjs ([r g b a])
     (def avg (/ (+ r g b) 3))
     (def val (if (> avg level) 255 0))
-    (val val val a)))
+    [val val val a]))
 
 (def inv (fnjs ((r g b a))
-  ((- 255 r) (- 255 g) (- 255 b) a)))
+  [(- 255 r) (- 255 g) (- 255 b) a]))
 
 (img.blur 4)
-(img.pixFn (thresh 200))
+(img.mapPixels (thresh 60))
 
 
 (view img)

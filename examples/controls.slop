@@ -1,11 +1,11 @@
 (def w 512)
 (def h 512)
 
-(defn rgb (r g b)
-  (def clamped (map (r g b) (fn (c) (clamp c 0 255))))
+(defn rgb [r g b]
+  (def clamped (map [r g b] (fn (c) (clamp c 0 255))))
   (join "rgb(" (join-c "," clamped) ")"))
 
-(defn hsl (h s l)
+(defn hsl [h s l]
   (set s (join (clamp s 0 100) "%"))
   (set l (join (clamp l 0 100) "%"))
   (join "hsl(" h "," s "," l ")"))
@@ -13,7 +13,7 @@
 (def bg (rgb 87 38 182))
 (def fg (hsl 180 92 65))
 
-(def radius (clamp 134 0 w))
+(def radius (clamp 181 0 w))
 
 (view (-> (Canvas.new w h)
           (fn (x) (x.fill bg))

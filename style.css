@@ -106,10 +106,6 @@ body {
   flex-flow: row wrap;
 }
 
-.artboard {
-  background: silver;
-}
-
 .border-right {
   border-right: var(--line);
 }

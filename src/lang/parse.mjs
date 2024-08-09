@@ -29,9 +29,16 @@ function match(reader, type) {
 function expression(reader) {
   if (match(reader, Type.L_PAREN)) {
     if (match(reader, Type.R_PAREN)) {
-      return { type: Type.literal, val: null };
+      return { type: Type.NIL, val: null };
     }
     return list(reader);
+  }
+
+  if (match(reader, Type.L_BRACKET)) {
+    if (match(reader, Type.R_BRACKET)) {
+      return {type: Type.VEC, elements: []}
+    }
+    return vec(reader);
   }
 
   if (match(reader, Type.L_BRACE)) {
@@ -63,6 +70,29 @@ function list(reader) {
 
   return {
     type: Type.LIST,
+    elements,
+    range: [start, end]
+  };
+}
+
+/**
+ * Parse a list.
+ * @param {Reader} reader
+ * @return {ExpressionNode}
+ */
+function vec(reader) {
+  const start = reader.prev().range[0];
+  const elements = [];
+
+  while (!match(reader, Type.R_BRACKET)) {
+    let expr = expression(reader);
+    if (expr) elements.push(expr);
+  }
+
+  const end = reader.prev().range[1];
+
+  return {
+    type: Type.VEC,
     elements,
     range: [start, end]
   };

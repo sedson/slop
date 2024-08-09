@@ -133,6 +133,12 @@ window.addEventListener('DOMContentLoaded', () => {
     const env = ctx(editor, viewport);
     const { ok, tree, result, error, tokens } = lisp.run(src, env);
 
+    // console.log(JSON.stringify(tree, (key, val) => {
+    //   if (key === 'type') return lisp.Type.getString(val);
+    //   if (key === 'range') return;
+    //   return val;
+    // }, 2));
+
     if (ok) {
       viewport.draw();
       if (useLog)

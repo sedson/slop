@@ -3,9 +3,9 @@
  */
 
 import { registerExtension, Type } from '../index.mjs';
-registerExtension('fnjs', _fnjs);
-registerExtension('defilter', _defilter);
 
+registerExtension('fnjs', _fnjs);
+registerExtension('defnjs', _defnjs);
 
 const binaryOps = ['**', '>', '<', '>=', '<='];
 const multiOps = ['*', '+', '-', '/'];
@@ -36,6 +36,11 @@ export function toJS(expression, context = null, useReturn = false) {
     } catch {
       return format(expression.val);
     }    
+  }
+
+  if (expression.type === Type.VEC) {
+    const vec = expression.elements.map(x => _js(x)).join(', ');
+    return format(`[${vec}]`);
   }
 
   if (expression.type !== Type.LIST) {
@@ -105,7 +110,7 @@ function _fnjs(elements, context) {
 }
 
 
-function _defilter(elements, context) {
+function _defnjs(elements, context) {
   const label = elements[0].val;
   const func = _fnjs(elements.slice(1), context);
   func.funcName = label;

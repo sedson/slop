@@ -17,6 +17,7 @@ import * as stringTools from './string-tools.js';
 // undo stack, these might go.
 const nonPrintingChars = new Set(['Tab', 'Meta', 'Shift', 'Control', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown']);
 
+
 const markup = `
 <link rel="stylesheet" href="src/components/code-editor/style.css">
 <textarea class="source" spellcheck="false"></textarea>

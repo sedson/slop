@@ -37,6 +37,7 @@ export function tokenize(input) {
   };
 
   while (!reader.done()) {
+    
     tokenStart = reader.loc;
     colStart = col;
     const char = next();

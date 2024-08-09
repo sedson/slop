@@ -2,6 +2,7 @@ import { Type } from './types.mjs';
 import { SpecialWords } from './index.mjs';
 import { Context } from './context.mjs';
 
+
 function error (message) {
   throw new Error( `interpret – ${message}`);
 }
@@ -11,7 +12,7 @@ function isNumber (val) {
 }
 
 function isString (val) {
-  return typeof val === 'number';
+  return typeof val === 'string';
 }
 
 
@@ -22,6 +23,7 @@ export const core = {
   def: _def,
   var: _var,
   fn: _fn,
+  fx: _fx,
   defn: _defn,
   if: _if,
   cond: _cond,
@@ -29,8 +31,9 @@ export const core = {
   set: _set,
   quote: _quote,
   eval: _eval,
-  key: _key,
-  // let: _let,
+  type: _type,
+  retype: _retype,
+  let: _let,
 };
 
 
@@ -47,6 +50,10 @@ export const extensions = {};
  * @param {Context} The context to execute in.
  */
 export function interpret(expression, context) {
+
+  if (expression === null || expression === undefined)
+    return undefined;
+
   // Raw literal.
   if (isNumber(expression) || isString(expression)) {
     return expression;
@@ -68,8 +75,6 @@ export function interpret(expression, context) {
   if (expression.type === Type.IDENTIFIER)
     return context.get(expression.val, expression.subpath);
 
-  if (expression === undefined)
-    return null;
 
   if (expression.type === Type.DICT) {
     const newMap = {};
@@ -77,6 +82,10 @@ export function interpret(expression, context) {
       newMap[key] = interpret(expression.dict[key], context);
     }
     return newMap;
+  }
+
+  if (expression.type === Type.VEC) {
+    return expression.elements.map(n => interpret(n, context));
   }
 
   if (expression.type !== Type.LIST) {
@@ -88,6 +97,10 @@ export function interpret(expression, context) {
   if (!context) context = new Context();
 
   const elements = expression.elements;
+
+  if (!elements.length) {
+    return elements;
+  }
 
   // Now we are in a list.
   let first = elements[0].val;
@@ -110,8 +123,15 @@ export function interpret(expression, context) {
     return list[0](...list.slice(1));
   }
 
-  // Else just return list.
-  return list;
+  // Invoke dict as a function if it has only one arg. With args[1] as a key.
+  if (typeof list[0] === 'object') {
+    if (list.length === 2) {
+      return list[0][list[1]];
+    }
+  }
+
+  console.log(list)
+  error('first elem not a function: ' + list[0]);
 }
 
 
@@ -119,26 +139,38 @@ export function interpret(expression, context) {
  * Define a static variable.
  */
 function _def(elements, context) {
-  const label = elements[0].val;
-  const value = elements[1];
-  return context.set(label, interpret(value, context), true);
+  return _contextSet(elements, context, true);
 }
 
 /**
  * Define a dynamic variable.
  */
 function _var(elements, context) {
-  const label = elements[0].val;
-  const value = elements[1];
-  return context.set(label, interpret(value, context), false);
+  return _contextSet(elements, context, false);
+
 }
 
 function _set(elements, context) {
-  const label = elements[0].val;
-  const value = elements[1];
-  return context.set(label, interpret(value, context), false, elements[0].subpath);
+  return _contextSet(elements, context, false);
 }
 
+
+function _contextSet(elements, context, isDef) {
+  
+  if (elements[0].type === Type.VEC && elements[1].type === Type.VEC) {
+    
+    const interpreted = elements[1].elements.map(x => interpret(x, context));
+    for (let i = 0; i < elements[0].elements.length; i++) {
+      const label = elements[0].elements[i].val;
+      context.set(label, interpreted[i], isDef,  elements[0].elements[i].subpath);
+    }
+    return interpreted;
+  }
+
+  const label = elements[0].val;
+  const value = elements[1];
+  return context.set(label, interpret(value, context), isDef, elements[0].subpath);
+}
 
 /**
  * Create a lambda.
@@ -147,14 +179,13 @@ function _set(elements, context) {
 function _fn(elements, context) {
   const params = elements[0];
   const body = elements.slice(1);
-  console.log("BODY", body);
 
   return (...args) => {
     const localContext = new Context(context.env, params.elements, args);
     return body.reduce((result, expr) => {
       result = interpret(expr, localContext);
       return result;
-    }, null);
+    }, undefined);
   };
 }
 
@@ -165,7 +196,7 @@ function _fn(elements, context) {
  */
 function _fnBasic(elements, context) {
   return () => {
-    let res = null;
+    let res = undefined;
     for (let expr of elements) {
       res = interpret(expr, context);
     }
@@ -173,6 +204,42 @@ function _fnBasic(elements, context) {
   };
 }
 
+function _fx(elements, context) {
+  return (x) => {
+    const localContext = new Context(context.env, [{val: 'x'}], [x]);
+    console.log(localContext);
+    return elements.reduce((result, expr) => {
+      result = interpret(expr, localContext);
+      return result;
+    }, undefined);
+  }
+}
+
+function _type(elements, context) {
+  if (Array.isArray(elements)) {
+    return _type(elements[0], context);
+  }
+
+  const e = elements;
+  // console.log('TYPE', e);
+
+  if (isNumber(e)) return Type.NUM;
+  if (isString(e)) return Type.STR;
+  
+  if (e instanceof Function) return Type.FUNC;
+  
+  if (e === undefined || e === null) return Type.NIL;
+
+  if (e.type === Type.IDENTIFIER) {
+    return _type(interpret(e, context), context);
+  }
+  if (e.type === Type.LIST) {
+    // console.log('type of list', e)
+    return _type(interpret(e, context), context);
+  }
+
+  return e.type;
+}
 
 /**
  * Define a function.
@@ -204,8 +271,6 @@ function _for(elements, context) {
   const controlValues = elements[1];
   const body = elements.slice(2);
 
-  console.log(label, controlValues, body)
-
   const localContext = new Context(context.env);
   
   let [start, end, by] = controlValues.elements.map(n => interpret(n, context));
@@ -233,7 +298,6 @@ function _for(elements, context) {
  */ 
 function _cond(elements, context) {
   for (let condition of elements) {
-    console.log(condition)
     if (interpret(condition.elements[0], context)) {
       return interpret(condition.elements[1], context);
     }
@@ -245,30 +309,69 @@ function _cond(elements, context) {
 /**
  * TODO Tests!
  */ 
-function _quote(elements, context) {
-  if (isNumber(elements) || isString(elements)) {
-    return elements;
+function _quote(element) {
+  if (Array.isArray(element)) {
+    return _quote(element[0]);
   }
 
-  if (elements.val !== undefined) {
-    return elements;
+  if (isNumber(element) || isString(element)) {
+    return element;
   }
 
-  if (elements.type === Type.LIST) {
+  if (element.val !== undefined) {
+    return element;
+  }
+
+  if (element.type === Type.LIST) {
     return {
       type: Type.LIST,
-      elements: elements.elements.map(_quote),
+      elements: element.elements.map(_quote),
     };
   }
-
-  if (elements[0].type === Type.LIST) {
+  
+  if (element.type === Type.DICT) {
     return {
-      type: Type.LIST,
-      elements: elements[0].elements.map(_quote),
-    };
+      type: Type.DICT,
+      dict: Object.keys(element.dict).reduce((dict , key) => {
+        dict[key] = _quote(element.dict[key]);
+        return dict;
+      }, {})
+    }
   }
 
-  return elements[0];
+  return element;
+}
+
+
+function _retype(element, context) {
+  if (Array.isArray(element)) {
+    return _retype(element[0], context);
+  }
+
+  if (element.type === Type.STR) {
+    return `"${element.val}"`;
+  }
+
+  if (element.val !== undefined) {
+    return element.val;
+  }
+
+  if (element.type === Type.LIST) {
+    return '(' + element.elements.map(x => _retype(x, context)).join(' ') + ')';
+  }
+
+   if (element.type === Type.VEC) {
+    return '[' + element.elements.map(x => _retype(x, context)).join(' ') + ']';
+  }
+
+  if (element.type === Type.DICT) {
+    const entries = Object.entries(element.dict).reduce((arr, entry) => {
+      arr.push(entry[0] + ' ' + _retype(entry[1], context));
+      return arr;
+    }, []);
+
+    return `{${entries.join(' ')}}`;
+  }
 }
 
 
@@ -277,14 +380,24 @@ function _quote(elements, context) {
  */ 
 function _eval(elements, context) {
   const expr = interpret(elements[0], context);
-  console.log('EVAL', expr);
   return interpret(expr, context);
 }
 
 
-function _let(elements, context) {}
+function _let(elements, context) {
+  const bindings = elements[0];
+  const body = elements.slice(1);
 
+  const localContext = new Context(context.env);
+  for (let binding of bindings.elements) {
+    console.log({binding})
+    _def(binding.elements, localContext);
+  }
 
-function _key(elements, context) {
-  return ':' + interpret(elements[0], context);
+  let res = undefined;
+  for (let elem of body) {
+    res = interpret(elem, localContext);
+  }
+
+  return res;
 }

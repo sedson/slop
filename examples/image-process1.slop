@@ -40,7 +40,7 @@
 })
 
 (def composite 
-  (fold-self (img a b)
+  (fold-self [img a b]
     (fn (out next) 
       (blend (get mixer :mode) out next (get mixer :opacity)))))
 

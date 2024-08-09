@@ -1,29 +1,31 @@
 (def start (now))
+(seed -6)
 
 # map val from [minIn:maxIn] to [minOut:maxOut]
-(defn remap (val minIn maxIn minOut maxOut)
+(defn remap [val minIn maxIn minOut maxOut]
   (+ (* (/ (- val minIn) (- maxIn minIn)) (- maxOut minOut)) minOut))
 
 # random rgb string
-(defn chan () (floor (* (rand) 256)))
-(defn rand-col ()
+(defn chan [] (floor (* (rand) 256)))
+(defn rand-col []
   (join "rgb(" (chan) ', (chan) ', (chan) ")"))
 # fill a canvas with a color
 
-(defn fill (cnv col)
+(defn fill [cnv col]
   (cnv.rect 0 0 cnv.w cnv.h col)
   cnv)
 
 # main canvas
-(def cnv (make-canvas 512 512))
-(fill cnv (rand-col))
+(def cnv (make-canvas 2048 2048))
+(fill cnv '#333)
 
 # concentric circles
-(def count 9)
+(def count 19)
 (for-each (range 0 count) (fn (i)
-  (def radius (remap i 0 count cnv.w 30.3))
-  (cnv.ellipseStroke (* 0.5 cnv.w) (* 0.5 cnv.h) radius radius (rand-col) 45)))
+  (def radius (remap i 0 count cnv.w -12.7))
+  (cnv.ellipseStroke (* 0.5 cnv.w) (* 0.5 cnv.h) radius radius (rand-col) 92)))
 
 (view cnv)
+(open-new cnv)
 
 (join "evaled sketch in " (- (now) start) " ms.")

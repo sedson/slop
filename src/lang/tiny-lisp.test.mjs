@@ -1,4 +1,7 @@
+import { lib } from './index.mjs';
+
 const lang = await import('./index.mjs');
+const toJS = await import('./extensions/to-js.mjs');
 const { Test } = await import('./test.mjs');
 
 const test = (src, ctx = {}) => {
@@ -20,9 +23,9 @@ Test('Basics', (assert) => {
   assert.equal(test(''), null, 'Empty string -> null');
   assert.equal(test('10'), 10, 'Integer atom');
   assert.equal(test('"lang"'), "lang", 'String atom');
-  assert.equal(test('(10)'), [10], '1 elem list');
-  assert.equal(test('(10 60 30)'), [10, 60, 30], '3 elem list');
-  assert.equal(test('(20) (60)'), [60], '2 lists');
+  assert.equal(test('[10]'), [10], '1 elem list');
+  assert.equal(test('[10 60 30]'), [10, 60, 30], '3 elem list');
+  assert.equal(test('[20] [60]'), [60], '2 lists');
   assert.equal(test('(0- sa'), null, 'Syntax error -> null');
 });
 
@@ -30,11 +33,11 @@ Test('Basics', (assert) => {
 Test('Lambdas', (assert) => {
   let src;
   
-  src = `(fn (x) x)`;
+  src = `(fn [x] x)`;
   const type = typeof test(src);
   assert.equal(type, 'function', 'Lambda returns js function');
 
-  src = `((fn (x) x) 10)`;
+  src = `((fn [x] x) 10)`;
   assert.equal(test(src), 10, 'Immediately invoked identity lambda');
 });
 
@@ -48,16 +51,16 @@ Test('Define', (assert) => {
   src = `(def a 10) (def b 20) a`
   assert.equal(test(src), 10, 'Lookup numeric constant');
 
-  src = `(def a 10) (def b 20) (a b)`
+  src = `(def a 10) (def b 20) [a b]`
   assert.equal(test(src), [10, 20], 'Lookup 2 numeric constants');
 
-  src = `(def i (fn (x) (x))) (i "yo")`;
+  src = `(def i (fn [x] [x])) (i "yo")`;
   assert.equal(test(src), ["yo"], 'Identity lambda - as list');
 
-  src = `(def i (fn (x) x)) (i 5)`;
+  src = `(def i (fn [x] x)) (i 5)`;
   assert.equal(test(src), 5, 'Identity lambda - no list');
 
-  src = `(defn concat (x) (x x)) (concat 30)`;
+  src = `(defn concat [x] [x x]) (concat 30)`;
   assert.equal(test(src), [30, 30], 'Defn syntax sugar');
 });
 
@@ -107,7 +110,35 @@ Test('Funcs as params', (assert) => {
 });
 
 
+
+Test('Types', (assert) => {
+  const context = {
+    '+': (a, b) => a + b,
+  };
+
+  function wrapTestWithSymbolCheck(output, expected, message) {
+    const o = lang.Type.getString(output);
+    const e = lang.Type.getString(expected);
+    assert.equal(o, e, message);
+  }
+
+  wrapTestWithSymbolCheck(test('(type nil)'), lang.Type.NIL, 'nil');
+  wrapTestWithSymbolCheck(test('(type 1)'), lang.Type.NUM, 'num');
+  wrapTestWithSymbolCheck(test('(type "h")'), lang.Type.STR, 'str');
+  wrapTestWithSymbolCheck(test('(type (+ 1 2))', context), lang.Type.NUM, 'function -> num');
+  wrapTestWithSymbolCheck(test('(type {:a 1})'), lang.Type.DICT, 'dict literal');
+  wrapTestWithSymbolCheck(test('(type {})'), lang.Type.DICT, 'dict literal empty');
+  wrapTestWithSymbolCheck(test('(type ())'), lang.Type.NIL, 'empty tuple -> nil');
+  wrapTestWithSymbolCheck(test('(type [])'), lang.Type.VEC, 'empty vec');
+  wrapTestWithSymbolCheck(test('(type [1 2 3])'), lang.Type.VEC, 'vec literal');
+  wrapTestWithSymbolCheck(test('(type :a)'), lang.Type.KEY, 'key');
+  wrapTestWithSymbolCheck(test('(type :a-b)'), lang.Type.KEY, 'key with dash');
+  wrapTestWithSymbolCheck(test('(type (fn (x) x))'), lang.Type.FUNC, 'lambda');
+});
+
+
 Test('toJS string-based compile', (assert) => {
+
   const exprs = [
     {
       lisp: '(+ 1 2)',
@@ -133,7 +164,7 @@ Test('toJS string-based compile', (assert) => {
 
   for (let expr of exprs) {
     const tree = lang.parse(lang.tokenize(expr.lisp));
-    const js = lang.toJS(tree[0]);
+    const js = toJS.toJS(tree[0]);
     assert.equal(js, expr.js, `LISP => ${expr.lisp}\n  JS   => ${js}\n`);
   }
 });

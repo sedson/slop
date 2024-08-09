@@ -15,6 +15,10 @@ export class Context {
     this.env = Object.setPrototypeOf({}, scope);
     this._constants = new Set();
     for (let i = 0; i < params.length; i++) {
+      if (params[i].val === '&' && params.length === i + 2) {
+        this.env[params[i + 1].val] = args.slice(i);
+        return;
+      }
       this.env[params[i].val] = args[i];
     }
   }

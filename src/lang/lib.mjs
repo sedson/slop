@@ -42,7 +42,10 @@ export const utils = {
   },
   '_': (...args) => args[args.length - 1] || null,
   'ls': (...args) => args,
-  'call': (fn, ...args) => fn(...args),
+  'call': (fn, args) => {
+    return fn(...args);
+  },
+  'key': (a) => ':' + a,
   'console/log': (...args) => console.log(...args),
 };
 
@@ -58,6 +61,7 @@ export const math = {
   'max': (...args) => Math.max(...args),
   'min': (...args) => Math.min(...args),
   'clamp': (a, mn = 0, mx = 1) => Math.min(Math.max(a, mn), mx),
+  'abs': (a) => Math.abs(a),
   'sin': (a) => Math.sin(a),
   'cos': (a) => Math.cos(a),
   'sqrt': (a) => Math.sqrt(a),
@@ -76,6 +80,18 @@ export const math = {
   '&': (a, b) => a & b,
   '|': (a, b) => a | b,
   '**': (a, b) => a ** b,
+  'and': (...args) => {
+    for (let a of args) {
+      if (!a) return false;
+    }
+    return true;
+  },
+  'or': (...args) => {
+    for (let a of args) {
+      if (a) return true;
+    }
+    return false;
+  }
 }
 
 export const lists = {
@@ -96,6 +112,7 @@ export const lists = {
     ls.push(val);
     return val;
   },
+  'sum': (ls) => ls.reduce((a, b) => a + b, 0), 
   'first': (ls) => ls[0] ?? null,
   'last': (ls) => ls[ls.length - 1] ?? null,
   'rest': (ls) => ls.slice(1),
@@ -124,6 +141,10 @@ export const lists = {
   'values': (obj) => Object.values(obj),
   'entries': (obj) => Object.entries(obj),
   'get': (obj, key) => (obj[key]),
+  'dset': (obj, key, val) => {
+    obj[key] = val;
+    return val;
+  },
   'put': (obj, key, val) => {
     console.log("PUT", key, val);
     obj[key] = val;

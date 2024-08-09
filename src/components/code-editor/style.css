@@ -84,25 +84,25 @@
 .num {
   color: var(--purple);
 }
-.lparen, .rparen, .lbrace, .r {
+.lparen, .rparen, .lbrace, .rbrace, .rbracket, .lbracket {
   color: var(--comments);
 }
-.depth-1,
+.depth-0 {
+  color: orange;
+}
 .depth-1 {
-  color: var(--purple);
+  color: yellow;
 }
-.depth-2,
 .depth-2 {
-  color: var(--pink);
+  color: dodgerblue;
 }
-.depth-3,
 .depth-3 {
-  color: var(--green);
+  color: lawngreen;
 }
-.depth-4,
 .depth-4 {
-  color: var(--blue);
+  color: hotpink;
 }
+
 .dynamic {
   color: var(--green);
 }
