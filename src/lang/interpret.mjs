@@ -1,20 +1,20 @@
-import { Type } from './types.mjs';
-import { SpecialWords } from './index.mjs';
-import { Context } from './context.mjs';
+import { TokenType } from "./token.mjs";
+import {
+  isAtom,
+  SlopType,
+  SlopVal,
+  SlopPred,
+  SlopList,
+  SlopFn,
+  SlopDict,
+  SlopBool,
+} from "./types.mjs";
+import { SpecialWords } from "./index.mjs";
+import { Context } from "./context.mjs";
 
-
-function error (message) {
-  throw new Error( `interpret – ${message}`);
+function error(message) {
+  throw new Error(`interpret - ${message}`);
 }
-
-function isNumber (val) {
-  return typeof val === 'number';
-}
-
-function isString (val) {
-  return typeof val === 'string';
-}
-
 
 /**
  * The core functions.
@@ -34,8 +34,8 @@ export const core = {
   type: _type,
   retype: _retype,
   let: _let,
+  list: _list,
 };
-
 
 /**
  * Extensions functions.
@@ -43,97 +43,71 @@ export const core = {
  */
 export const extensions = {};
 
-
-/** 
+/**
  * Run the interpreter on an expression.
- * @param {ExpressionNode} expression 
+ * @param {ExpressionNode} expression
  * @param {Context} The context to execute in.
  */
 export function interpret(expression, context) {
+  // Create a new context if needed.
+  if (!context) context = new Context();
+  const interpInCtx = (expr) => interpret(expr, context);
 
-  if (expression === null || expression === undefined)
-    return undefined;
+  // Keyword check.
+  if (SlopPred.isSymbol(expression) && expression in SpecialWords)
+    return SpecialWords[expression];
 
-  // Raw literal.
-  if (isNumber(expression) || isString(expression)) {
+  // Get the value from context.
+  if (SlopPred.isSymbol(expression)) {
+    return context.get(expression, expression.subpath);
+  }
+
+  if (isAtom(expression)) return expression;
+
+  if (SlopPred.isDict(expression)) {
+    return SlopDict.mapVals(expression, interpInCtx);
+  }
+
+  if (!SlopPred.isList(expression)) {
+    console.log("PROBLEM", expression);
+    error("Unhandled non-list case");
+  }
+
+  if (!SlopList.len(expression)) {
     return expression;
   }
 
-  // Parsed literal.
-  if (expression.type === Type.NUM || expression.type === Type.STR)
-    return expression.val;
-
-  // Self-evaluating key word.
-  if (expression.type === Type.KEY)
-    return expression.val;
-
-  // Keyword check.
-  if (expression.val in SpecialWords)
-    return SpecialWords[expression.val];
-
-  // Get the value from context.
-  if (expression.type === Type.IDENTIFIER)
-    return context.get(expression.val, expression.subpath);
-
-
-  if (expression.type === Type.DICT) {
-    const newMap = {};
-    for (let key in expression.dict) {
-      newMap[key] = interpret(expression.dict[key], context);
-    }
-    return newMap;
-  }
-
-  if (expression.type === Type.VEC) {
-    return expression.elements.map(n => interpret(n, context));
-  }
-
-  if (expression.type !== Type.LIST) {
-    console.log('PROBLEM', expression);
-    error('Unhandled non-list case');
-  }
-
-  // Create a new context if needed.
-  if (!context) context = new Context();
-
-  const elements = expression.elements;
-
-  if (!elements.length) {
-    return elements;
-  }
-
   // Now we are in a list.
-  let first = elements[0].val;
+  let [first, rest] = SlopList.decap(expression);
 
   // Check for core functions.
   if (first in core) {
-    return core[first](elements.slice(1), context);
+    return core[first](rest, context);
   }
 
   // Check for extensions.
   if (first in extensions) {
-    return extensions[first](elements.slice(1), context);
+    return extensions[first](rest, context);
   }
 
   // Interpret each element of the list.
-  const list = elements.map(n => interpret(n, context));
+  const evaledExprs = expression.map(interpInCtx);
+  [first, rest] = SlopList.decap(evaledExprs);
 
   // If function, apply to list.
-  if (list[0] instanceof Function) {
-    return list[0](...list.slice(1));
+  if (SlopPred.isFn(first)) {
+    return SlopFn.apply(first, rest);
   }
 
   // Invoke dict as a function if it has only one arg. With args[1] as a key.
-  if (typeof list[0] === 'object') {
-    if (list.length === 2) {
-      return list[0][list[1]];
+  if (SlopPred.isDict(first)) {
+    if (SlopList.len(rest) === 1) {
+      return SlopDict.get(first, SlopList.first(rest));
     }
   }
 
-  console.log(list)
-  error('first elem not a function: ' + list[0]);
+  error("first elem not a function: " + evaledExprs[0]);
 }
-
 
 /**
  * Define a static variable.
@@ -147,143 +121,133 @@ function _def(elements, context) {
  */
 function _var(elements, context) {
   return _contextSet(elements, context, false);
-
 }
 
 function _set(elements, context) {
   return _contextSet(elements, context, false);
 }
 
-
 function _contextSet(elements, context, isDef) {
-  
-  if (elements[0].type === Type.VEC && elements[1].type === Type.VEC) {
-    
-    const interpreted = elements[1].elements.map(x => interpret(x, context));
-    for (let i = 0; i < elements[0].elements.length; i++) {
-      const label = elements[0].elements[i].val;
-      context.set(label, interpreted[i], isDef,  elements[0].elements[i].subpath);
-    }
+  const interpInCtx = (expr) => interpret(expr, context);
+  const [first, second] = SlopList.take(elements, 2);
+
+  if (SlopPred.isList(first) && SlopPred.isList(second)) {
+    const interpreted = SlopList.map(second, interpInCtx);
+
+    SlopList.forEach(first, (val, i) => {
+      context.set(val, SlopList.at(interpreted, i), isDef, val.subpath);
+    });
+
     return interpreted;
   }
 
-  const label = elements[0].val;
-  const value = elements[1];
-  return context.set(label, interpret(value, context), isDef, elements[0].subpath);
+  return context.set(first, interpInCtx(second), isDef, first.subpath);
 }
 
 /**
  * Create a lambda.
  * @return {function}
  */
-function _fn(elements, context) {
-  const params = elements[0];
-  const body = elements.slice(1);
+function _fn(elements, context, name = undefined) {
+  const [params, body] = SlopList.decap(elements);
 
-  return (...args) => {
-    const localContext = new Context(context.env, params.elements, args);
-    return body.reduce((result, expr) => {
-      result = interpret(expr, localContext);
-      return result;
-    }, undefined);
-  };
+  return SlopVal.fn((...args) => {
+    const localContext = new Context(context.env, params, args);
+    return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
+  }, name);
 }
-
 
 /**
  * Create a simplified lamba that does not have its own local scope or params.
  * @return {function}
  */
 function _fnBasic(elements, context) {
-  return () => {
-    let res = undefined;
-    for (let expr of elements) {
-      res = interpret(expr, context);
-    }
-    return res;
-  };
+  return SlopVal.fn(() =>
+    SlopList.reduce(elements, (_, expr) => interpret(expr, context))
+  );
 }
 
 function _fx(elements, context) {
-  return (x) => {
-    const localContext = new Context(context.env, [{val: 'x'}], [x]);
+  return SlopVal.fn((x) => {
+    const localContext = new Context(context.env, [{ val: "x" }], [x]);
     console.log(localContext);
-    return elements.reduce((result, expr) => {
-      result = interpret(expr, localContext);
-      return result;
-    }, undefined);
-  }
+    return SlopList.reduce(elements, (_, expr) =>
+      interpret(expr, localContext)
+    );
+  });
 }
 
-function _type(elements, context) {
-  if (Array.isArray(elements)) {
-    return _type(elements[0], context);
+function _type(elements, context, initial = true) {
+  if (SlopPred.isList(elements) && initial) {
+    return _type(interpret(SlopList.first(elements), context), context, false);
   }
 
-  const e = elements;
-  // console.log('TYPE', e);
+  const val = elements;
 
-  if (isNumber(e)) return Type.NUM;
-  if (isString(e)) return Type.STR;
-  
-  if (e instanceof Function) return Type.FUNC;
-  
-  if (e === undefined || e === null) return Type.NIL;
+  if (SlopPred.isNum(val)) return SlopType.NUM;
 
-  if (e.type === Type.IDENTIFIER) {
-    return _type(interpret(e, context), context);
-  }
-  if (e.type === Type.LIST) {
-    // console.log('type of list', e)
-    return _type(interpret(e, context), context);
-  }
+  if (SlopPred.isString(val)) return SlopType.STR;
 
-  return e.type;
+  if (SlopPred.isFn(val)) return SlopType.FUNC;
+
+  if (SlopPred.isNil(val)) return SlopType.NIL;
+
+  if (SlopPred.isSymbol(val)) return SlopType.SYMBOL;
+
+  if (SlopPred.isList(val)) return SlopType.LIST;
+
+  if (SlopPred.isDict(val)) return SlopType.DICT;
+
+  if (SlopPred.isKey(val)) return SlopType.KEY;
+
+  error(`Unknown runtime type for value ${val}`);
 }
 
 /**
  * Define a function.
- */ 
+ */
 function _defn(elements, context) {
-  const label = elements[0].val;
-  const func = _fn(elements.slice(1), context);
-  func.funcName = label;
-  return context.set(label, func);
+  const [name, body] = SlopList.decap(elements);
+  const func = _fn(body, context, name);
+  return context.set(name, func);
 }
 
-
 function _if(elements, context) {
-  const predicate = elements[0];
-  const ifBranch = elements[1];
-  const elseBranch = elements[2];
+  const [predicate, ifBranch, elseBranch] = SlopList.take(elements, 3);
 
   let condition = interpret(predicate, context);
-  if (condition === null || condition === false) {
-    return (elseBranch === undefined) ? null : interpret(elseBranch, context);
+  if (
+    (SlopPred.isBool(condition) && SlopBool.isFalse(condition)) ||
+    SlopPred.isNil(condition)
+  ) {
+    return interpret(elseBranch, context);
   } else {
     return interpret(ifBranch, context);
   }
 }
 
-
 function _for(elements, context) {
-  const label = elements[0].val;
-  const controlValues = elements[1];
-  const body = elements.slice(2);
+  const [[label, controlValues], body] = SlopList.split(2);
 
   const localContext = new Context(context.env);
-  
-  let [start, end, by] = controlValues.elements.map(n => interpret(n, context));
+
+  let [start, end, by] = SlopList.map(controlValues, (n) =>
+    interpret(n, context)
+  );
   by = by ?? 1;
 
-  if (start === undefined || end === undefined || Math.sign(end - start) !== Math.sign(by)) {
+  if (
+    SlopPred.isNil(start) ||
+    SlopPred.isNil(end) ||
+    Math.sign(end - start) !== Math.sign(by)
+  ) {
     error(`Malformed list control: [let _ = ${start}; _ to ${end}; _ += ${by}`);
   }
 
   const fn = _fnBasic(body, localContext);
   let res = null;
 
-  const done = (i) => end > start ? i < end : i > end;
+  const done = (i) => (end > start ? i < end : i > end);
   for (let i = start; done(i); i += by) {
     localContext.set(label, i);
     res = fn();
@@ -292,112 +256,77 @@ function _for(elements, context) {
   return res;
 }
 
-
-/**
- * TODO Tests!
- */ 
 function _cond(elements, context) {
-  for (let condition of elements) {
-    if (interpret(condition.elements[0], context)) {
-      return interpret(condition.elements[1], context);
+  for (let arm of SlopList.iter(elements)) {
+    const [condition, then] = SlopList.take(arm, 2);
+    if (SlopBool.isTrue(interpret(condition, context))) {
+      return interpret(then, context);
     }
   }
-  return null;
 }
 
-
-/**
- * TODO Tests!
- */ 
-function _quote(element) {
-  if (Array.isArray(element)) {
-    return _quote(element[0]);
+function _quote(elements) {
+  if (elements.length !== 1) {
+    error("may only quote one form");
   }
-
-  if (isNumber(element) || isString(element)) {
-    return element;
-  }
-
-  if (element.val !== undefined) {
-    return element;
-  }
-
-  if (element.type === Type.LIST) {
-    return {
-      type: Type.LIST,
-      elements: element.elements.map(_quote),
-    };
-  }
-  
-  if (element.type === Type.DICT) {
-    return {
-      type: Type.DICT,
-      dict: Object.keys(element.dict).reduce((dict , key) => {
-        dict[key] = _quote(element.dict[key]);
-        return dict;
-      }, {})
-    }
-  }
-
-  return element;
+  return elements[0];
 }
-
 
 function _retype(element, context) {
-  if (Array.isArray(element)) {
-    return _retype(element[0], context);
+  if (SlopPred.isList(element)) {
+    return _retype(SlopList.first(element), context);
   }
 
-  if (element.type === Type.STR) {
-    return `"${element.val}"`;
+  if (SlopPred.isString(element)) {
+    return `"${element}"`;
   }
 
+  // What is this supposed to do?
   if (element.val !== undefined) {
     return element.val;
   }
 
-  if (element.type === Type.LIST) {
-    return '(' + element.elements.map(x => _retype(x, context)).join(' ') + ')';
+  if (SlopPred.isList(element)) {
+    return (
+      "(" + SlopList.map(element, (x) => _retype(x, context)).join(" ") + ")"
+    );
   }
 
-   if (element.type === Type.VEC) {
-    return '[' + element.elements.map(x => _retype(x, context)).join(' ') + ']';
-  }
-
-  if (element.type === Type.DICT) {
-    const entries = Object.entries(element.dict).reduce((arr, entry) => {
-      arr.push(entry[0] + ' ' + _retype(entry[1], context));
-      return arr;
-    }, []);
-
-    return `{${entries.join(' ')}}`;
+  if (SlopPred.isDict(element)) {
+    const entries = SlopList.map(
+      SlopDict.entries(element),
+      ([key, val]) => `${key} ${_retype(val, context)}`
+    );
+    return `{${entries.join(" ")}}`;
   }
 }
-
 
 /**
  * TODO Tests!
- */ 
+ */
 function _eval(elements, context) {
-  const expr = interpret(elements[0], context);
-  return interpret(expr, context);
+  return interpret(interpret(SlopList.first(elements), context), context);
+  // const expr = interpret(SlopList.first(elements), context);
+  // return interpret(expr, context);
 }
 
-
 function _let(elements, context) {
-  const bindings = elements[0];
-  const body = elements.slice(1);
+  const [bindings, body] = SlopList.decap(elements);
 
   const localContext = new Context(context.env);
-  for (let binding of bindings.elements) {
-    console.log({binding})
-    _def(binding.elements, localContext);
+
+  for (let binding of SlopList.iter(bindings)) {
+    _def(binding, localContext);
   }
 
   let res = undefined;
-  for (let elem of body) {
+  for (let elem of SlopList.iter(body)) {
     res = interpret(elem, localContext);
   }
 
   return res;
+}
+
+function _list(elements, context) {
+  return SlopVal.list(elements.map((e) => interpret(e, context)));
 }

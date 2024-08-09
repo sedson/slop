@@ -1,18 +1,21 @@
-import { Type } from "./types.mjs";
+import { TokenType } from "./token.mjs";
+import { SlopVal } from "./types.mjs";
 import { Reader } from "./parsing-utils.mjs";
 
 function error(message, token) {
-  const location = token ? ` [ line ${token.line}, col ${token.col} ]` : '';
-  throw new Error(`parse – ${message + location}`);
+  const location = token ? ` [ line ${token.line}, col ${token.col} ]` : "";
+  throw new Error(`parse - ${message + location}`);
 }
 
 /**
  * Match the current reader token with a desired type.
  * @param {Reader} reader
- * @param {Type} type
+ * @param {TokenType} type
  */
 function match(reader, type) {
-  if (reader.done()) { error('unexpected EOF', reader.prev()); }
+  if (reader.done()) {
+    error("unexpected EOF", reader.prev());
+  }
   if (reader.peek().type === type) {
     reader.next();
     return true;
@@ -20,30 +23,31 @@ function match(reader, type) {
   return false;
 }
 
-
 /**
  * Parse an expression.
  * @param {Reader} reader
  * @return {ExpressionNode}
  */
 function expression(reader) {
-  if (match(reader, Type.L_PAREN)) {
-    if (match(reader, Type.R_PAREN)) {
-      return { type: Type.NIL, val: null };
+  if (match(reader, TokenType.L_PAREN)) {
+    if (match(reader, TokenType.R_PAREN)) {
+      return SlopVal.nil();
     }
-    return list(reader);
+    return list(reader, TokenType.R_PAREN);
   }
 
-  if (match(reader, Type.L_BRACKET)) {
-    if (match(reader, Type.R_BRACKET)) {
-      return {type: Type.VEC, elements: []}
+  // TODO: remove me once we've implemented square brackets as a reader macro.
+  // For now, it's just the same as round parens.
+  if (match(reader, TokenType.L_BRACKET)) {
+    if (match(reader, TokenType.R_BRACKET)) {
+      return SlopVal.nil();
     }
-    return vec(reader);
+    return list(reader, TokenType.R_BRACKET);
   }
 
-  if (match(reader, Type.L_BRACE)) {
-    if (match(reader, Type.R_BRACE)) {
-      return { type: Type.DICT, val: {} };
+  if (match(reader, TokenType.L_BRACE)) {
+    if (match(reader, TokenType.R_BRACE)) {
+      return SlopVal.dict({});
     }
     return dict(reader);
   }
@@ -51,53 +55,21 @@ function expression(reader) {
   return atom(reader);
 }
 
-
 /**
  * Parse a list.
  * @param {Reader} reader
  * @return {ExpressionNode}
  */
-function list(reader) {
-  const start = reader.prev().range[0];
+function list(reader, closeToken) {
   const elements = [];
 
-  while (!match(reader, Type.R_PAREN)) {
+  while (!match(reader, closeToken)) {
     let expr = expression(reader);
-    if (expr) elements.push(expr);
+    if (expr != null) elements.push(expr);
   }
 
-  const end = reader.prev().range[1];
-
-  return {
-    type: Type.LIST,
-    elements,
-    range: [start, end]
-  };
+  return SlopVal.list(elements);
 }
-
-/**
- * Parse a list.
- * @param {Reader} reader
- * @return {ExpressionNode}
- */
-function vec(reader) {
-  const start = reader.prev().range[0];
-  const elements = [];
-
-  while (!match(reader, Type.R_BRACKET)) {
-    let expr = expression(reader);
-    if (expr) elements.push(expr);
-  }
-
-  const end = reader.prev().range[1];
-
-  return {
-    type: Type.VEC,
-    elements,
-    range: [start, end]
-  };
-}
-
 
 /**
  * Parse an atom.
@@ -107,42 +79,31 @@ function vec(reader) {
 function atom(reader) {
   const token = reader.next();
   switch (token.type) {
+    case TokenType.SYMBOL:
+      return SlopVal.symbol(token.val, token.subpath);
 
-  case Type.IDENTIFIER:
-    return {
-      type: Type.IDENTIFIER,
-      val: token.val,
-      subpath: token.subpath,
-      range: token.range
-    };
+    case TokenType.KEY:
+      return SlopVal.key(token.val);
 
-  case Type.KEY:
-    return {
-      type: Type.KEY,
-      val: token.val,
-      range: token.range,
-    }
+    case TokenType.NUM:
+      return SlopVal.num(token.val);
 
-  case Type.NUM:
-  case Type.STR:
-    return {
-      type: token.type,
-      val: token.val,
-      range: token.range
-    };
+    case TokenType.STR:
+      return SlopVal.string(token.val);
 
-  case Type.COMMENT:
-    return false;
+    case TokenType.COMMENT:
+      return false;
 
-  case Type.EOF:
-    return false;
+    case TokenType.EOF:
+      return false;
 
-  default:
-    const typeStr = Type.getString(token.type);
-    error(`unexpected type: ${typeStr}, line: ${token.line}, col: ${token.col}`);
+    default:
+      const typeStr = TokenType.getString(token.type);
+      error(
+        `unexpected type: ${typeStr}, line: ${token.line}, col: ${token.col}`
+      );
   }
 }
-
 
 /**
  * Parse an atom.
@@ -153,7 +114,7 @@ function dict(reader) {
   const data = {};
   let isKey = true;
   let key = null;
-  while (!match(reader, Type.R_BRACE)) {
+  while (!match(reader, TokenType.R_BRACE)) {
     if (isKey) {
       key = expression(reader);
     } else {
@@ -162,9 +123,8 @@ function dict(reader) {
     isKey = !isKey;
   }
 
-  return { type: Type.DICT, dict: data };
+  return SlopVal.dict({});
 }
-
 
 /**
  * Tokens -> abstract syntax tree.

@@ -1,6 +1,6 @@
 /**
  * @file Tests.
- */ 
+ */
 
 function _equal(a, b) {
   if (Array.isArray(a)) return _arrayEqual(a, b);
@@ -17,27 +17,26 @@ function _arrayEqual(a, b) {
 }
 
 const ansi = {
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  reset: '\x1b[0m',
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  reset: "\x1b[0m",
 };
 
 function fail(msg) {
-  if (typeof process === 'object') {
-    console.log(ansi.red + msg + ansi.reset);  
+  if (typeof process === "object") {
+    console.log(ansi.red + msg + ansi.reset);
   } else {
-    console.log('%c' + msg, 'color: red');
+    console.log("%c" + msg, "color: red");
   }
 }
 
 function pass(msg) {
-  if (typeof process === 'object') {
-    console.log(ansi.green + msg + ansi.reset);  
+  if (typeof process === "object") {
+    console.log(ansi.green + msg + ansi.reset);
   } else {
-    console.log('%c' + msg, 'color: green');
+    console.log("%c" + msg, "color: green");
   }
 }
-
 
 const assert = {
   equal: function (got, expected, message) {
@@ -45,11 +44,11 @@ const assert = {
       fail(`𐄂 ${message}\n\tGot: ${got}\n\tExpected: ${expected}`);
       return;
     }
-    pass('✓ ' + message);
-  }
-}
+    pass("✓ " + message);
+  },
+};
 
-export function Test (desc, fn) {
-  console.log('\nTest Unit:', desc);
+export function Test(desc, fn) {
+  console.log("\nTest Unit:", desc);
   fn(assert);
 }
