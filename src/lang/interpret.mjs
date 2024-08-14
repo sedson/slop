@@ -21,15 +21,22 @@ function error(message) {
  */
 export const core = {
   def: _def,
+
   var: _var,
   fn: _fn,
   fx: _fx,
   defn: _defn,
+  defmacro: _defmacro,
+
   if: _if,
   cond: _cond,
   for: _for,
   set: _set,
+  
   quote: _quote,
+  unquote: _unquote,
+  quasiquote: _quasiquote,
+
   eval: _eval,
   type: _type,
   retype: _retype,
@@ -77,8 +84,9 @@ export function interpret(expression, context) {
     return expression;
   }
 
-  // Now we are in a list.
   let [first, rest] = SlopList.decap(expression);
+
+  // if (first === "foo") debugger;
 
   // Check for core functions.
   if (first in core) {
@@ -89,7 +97,7 @@ export function interpret(expression, context) {
   if (first in extensions) {
     return extensions[first](rest, context);
   }
-
+  
   // Interpret each element of the list.
   const evaledExprs = expression.map(interpInCtx);
   [first, rest] = SlopList.decap(evaledExprs);
@@ -272,6 +280,47 @@ function _quote(elements) {
   return elements[0];
 }
 
+/**
+ * Its like quote this shit, but look for the special form unqoute x and instead
+ * call interpret on that x in the current context.
+ */ 
+function _quasiquote(element, context) {
+  if (Array.isArray(element)) {
+    return _quasiquote(element[0], context);
+  }
+
+  // console.log('QUASI', element);
+
+  if (element.type === Type.LIST) {
+    
+    if (element.elements[0].val === 'unquote') {
+      return interpret(element.elements[1], context);
+    }
+
+    return {
+      type: Type.LIST,
+      elements: element.elements.map(n => _quasiquote(n, context)),
+    };
+  }
+
+  if (element.type === Type.VEC) {
+    return {
+      type: Type.VEC,
+      elements: element.elements.map(n => _quasiquote(n, context)),
+    };
+  }
+
+
+
+  return element;
+}
+
+
+function _unquote () {
+  
+}
+
+
 function _retype(element, context) {
   if (SlopPred.isList(element)) {
     return _retype(SlopList.first(element), context);
@@ -327,6 +376,33 @@ function _let(elements, context) {
   return res;
 }
 
+
 function _list(elements, context) {
   return SlopVal.list(elements.map((e) => interpret(e, context)));
+}
+
+
+function _macro(elements, context) {
+  const params = elements[0];
+  const body = elements.slice(1);
+
+  return (...args) => {
+    console.log('MACRO INVOKED')
+    console.log({ params, args, body });
+
+    const localContext = new Context(context.env, params.elements, args);
+    return body.reduce((result, expr) => {
+      result = interpret(expr, localContext);
+      return result;
+    }, undefined);
+  };
+}
+
+
+function _defmacro(elements, context) {
+  const label = elements[0].val;
+  const func = _macro(elements.slice(1), context);
+  func.isMacro = true;
+  func.funcName = label;
+  return context.set(label, func);
 }
