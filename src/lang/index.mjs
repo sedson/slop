@@ -1,69 +1,77 @@
 /**
  * @file A lisp dialect.
  */
-import { Type } from './types.mjs';
-import { Context } from './context.mjs';
-import { tokenize } from './tokenize.mjs';
-import { parse } from './parse.mjs';
-import { interpret, core, extensions } from './interpret.mjs';
-import { prettyPrint } from './pretty-print.mjs';
-import { utils, math, lists, prng } from './lib.mjs';
+import { TokenType } from "./token.mjs";
+import { SlopType, SlopVal } from "./types.mjs";
+import { Context } from "./context.mjs";
+import { tokenize } from "./tokenize.mjs";
+import { parse } from "./parse.mjs";
+import { interpret, core, extensions } from "./interpret.mjs";
+import { prettyPrint } from "./pretty-print.mjs";
+import { utils, math, lists, prng } from "./lib.mjs";
 
 export const SpecialWords = {
-  nil: undefined,
+  nil: SlopVal.nil(),
+  // Is `null` a valid slop val? Should we get rid of this in favor of `nil`?
+  // Right now we have no explicit support for `null` in the SLOP type system
   null: null,
-  empty: [],
-  true: true,
-  false: false,
-  else: true
+  empty: SlopVal.list([]),
+  true: SlopVal.bool(true),
+  false: SlopVal.bool(false),
+  else: SlopVal.bool(true),
 };
 
 export const lib = { ...utils, ...math, ...lists, ...prng };
 
-export { Type, Context, tokenize, parse, interpret, prettyPrint, extensions };
+export {
+  TokenType,
+  SlopType,
+  Context,
+  tokenize,
+  parse,
+  interpret,
+  prettyPrint,
+  extensions,
+};
 
 /**
  * Keywords for syntax highlight.
  * @type {string[]}
- */ 
+ */
 export const keywords = Object.keys({ ...core, ...SpecialWords });
 
 /**
  * Read source text and return a tokens array and a syntax tree.
  * @param {string}
- */ 
+ */
 export function read(source) {
   const tokens = tokenize(source);
   try {
     const tree = parse(tokens);
-    return { ok: true, tokens, tree }
+    return { ok: true, tokens, tree };
   } catch (e) {
     return { ok: false, tokens, error: e };
   }
 }
-
 
 export function run(source, context) {
   const tokens = tokenize(source);
   try {
     const tree = parse(tokens);
 
-    console.log(tree, tokens)
-    
+    console.log(tree, tokens);
+
     let result = null;
-    
+
     for (let expression of tree) {
       result = interpret(expression, context);
     }
 
     return { ok: true, result, tree, tokens };
-
   } catch (e) {
-
-    return { ok: false, error: e, tokens};
+    return { ok: false, error: e, tokens };
   }
 }
-
 
 export function registerExtension(name, fn) {
   if (!(name in extensions)) {

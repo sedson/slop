@@ -1,23 +1,21 @@
 import * as lisp from "./lang/index.mjs";
-import * as themes from './themes.js';
-import { Canvas } from './canvas.js';
-import { CodeEditor } from './components/code-editor/code-editor.js';
+import * as themes from "./themes.js";
+import { Canvas } from "./canvas.js";
+import { CodeEditor } from "./components/code-editor/code-editor.js";
 
 // Import the the to-js compiler extensions.
-import './lang/extensions/to-js.mjs';
+import "./lang/extensions/to-js.mjs";
 
 const THEME = themes.xcodeDark;
 
-const imagesBySource = window.imagesBySource = {};
-const files = window.files = [];
+const imagesBySource = (window.imagesBySource = {});
+const files = (window.files = []);
 
 function ctx(editor = null, viewport = null) {
-
   // Add lisp to the scope.
   const scope = Object.assign({}, lisp.lib);
 
   if (editor) {
-
     // Add lisp to the scope.
     Object.assign(scope, {
       print: (...items) => {
@@ -29,11 +27,10 @@ function ctx(editor = null, viewport = null) {
     if (viewport) scope.viewport = viewport;
 
     Object.assign(scope, {
-
       // Add the canvas stuff to the scope.
       Canvas: Canvas,
-      '->Canvas': (...args) => new Canvas(...args),
-      'make-canvas': (width, height, label) => {
+      "->Canvas": (...args) => new Canvas(...args),
+      "make-canvas": (width, height, label) => {
         return new Canvas(width, height, label);
       },
 
@@ -44,36 +41,33 @@ function ctx(editor = null, viewport = null) {
         if (viewport) {
           viewport.artboards.push({
             canvas: canvas.canvas,
-            position: [x, y]
-          })
+            position: [x, y],
+          });
         }
       },
 
       // Open a canvas in a new tab.
-      'open-new': (canvas) => {
+      "open-new": (canvas) => {
         const url = canvas.canvas.toDataURL();
-        fetch(url).then(async res => {
+        fetch(url).then(async (res) => {
           const blob = await res.blob();
           const handle = URL.createObjectURL(blob);
           window.open(handle);
-        })
+        });
         return canvas;
       },
 
-
       now: () => performance.now(),
 
-
-
-      '@color': (x) => {
+      "@color": (x) => {
         return x;
       },
 
-      '@slider': (x) => {
+      "@slider": (x) => {
         return x;
       },
 
-      'load-img': (url) => {
+      "load-img": (url) => {
         if (imagesBySource[url]) {
           const img = imagesBySource[url];
           const cnvs = new Canvas(img.width, img.height);
@@ -86,20 +80,20 @@ function ctx(editor = null, viewport = null) {
         img.crossOrigin = "Anonymous";
         img.onload = () => {
           imagesBySource[url] = img;
-          window.dispatchEvent(new Event('image-load'));
-        }
+          window.dispatchEvent(new Event("image-load"));
+        };
         img.onerror = (e) => {
-          if (editor) editor.error('Img load error: ' + url);
-          console.error(e)
-        }
+          if (editor) editor.error("Img load error: " + url);
+          console.error(e);
+        };
 
         return new Canvas(1, 1);
       },
 
       files: files,
 
-      '#JS': (str) => eval(str),
-    })
+      "#JS": (str) => eval(str),
+    });
 
     return new lisp.Context(scope);
   }
@@ -113,16 +107,13 @@ for (let word of Object.keys(lisp.extensions)) {
   globals.add(word);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-
+window.addEventListener("DOMContentLoaded", () => {
   /** @type {CodeEditor} */
-  const editor = document.getElementById('editor');
+  const editor = document.getElementById("editor");
 
-
-  const viewport = window.viewport = document.getElementById('viewport');
-  const importer = document.getElementById('file-import');
-  const opener = document.getElementById('file-open');
-
+  const viewport = (window.viewport = document.getElementById("viewport"));
+  const importer = document.getElementById("file-import");
+  const opener = document.getElementById("file-open");
 
   themes.applyTheme(THEME, document.documentElement, editor, viewport);
 
@@ -141,82 +132,80 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (ok) {
       viewport.draw();
-      if (useLog)
-        editor.print(lisp.prettyPrint(result));
+      if (useLog) editor.print(lisp.prettyPrint(result));
     } else {
       editor.error(error);
       console.error(error);
     }
-  }
+  };
 
   editor.setSyntax({
     tokenize: lisp.tokenize,
     keywords: globals,
-    comment: '#',
+    comment: "#",
     tabSize: 2,
   });
 
   // Eval on control+enter
-  editor.mapkey('ctrl+enter', evalAll);
+  editor.mapkey("ctrl+enter", evalAll);
 
   // Eval when an imahge reloads.
-  window.addEventListener('image-load', evalAll);
+  window.addEventListener("image-load", evalAll);
 
-  editor.mapkey('tab', () => editor.indent());
-  editor.mapkey('shift+tab', () => editor.indent(true));
-  editor.mapkey('meta+z', (e) => editor.undo(e), false);
-  editor.mapkey('ctrl+-', () => editor.zoom(-0.1));
-  editor.mapkey('ctrl+=', () => editor.zoom(+0.1));
-  editor.mapkey('meta+s', () => editor.save('MAIN'));
-  editor.mapkey('ctrl+c', () => editor.clearLog());
-  editor.mapkey('meta+/', () => editor.comment());
-  editor.mapkey('ctrl+i', () => importer.click());
+  editor.mapkey("tab", () => editor.indent());
+  editor.mapkey("shift+tab", () => editor.indent(true));
+  editor.mapkey("meta+z", (e) => editor.undo(e), false);
+  editor.mapkey("ctrl+-", () => editor.zoom(-0.1));
+  editor.mapkey("ctrl+=", () => editor.zoom(+0.1));
+  editor.mapkey("meta+s", () => editor.save("MAIN"));
+  editor.mapkey("ctrl+c", () => editor.clearLog());
+  editor.mapkey("meta+/", () => editor.comment());
+  editor.mapkey("ctrl+i", () => importer.click());
 
-  viewport.mapkey('ctrl+-', () => viewport.zoom(-0.1));
-  viewport.mapkey('ctrl+=', () => viewport.zoom(+0.1));
-  viewport.mapkey('ctrl+l', () => viewport.pan(+50, 0));
-  viewport.mapkey('ctrl+h', () => viewport.pan(-50, 0));
-  viewport.mapkey('ctrl+k', () => viewport.pan(0, -50));
-  viewport.mapkey('ctrl+j', () => viewport.pan(0, 50));
+  viewport.mapkey("ctrl+-", () => viewport.zoom(-0.1));
+  viewport.mapkey("ctrl+=", () => viewport.zoom(+0.1));
+  viewport.mapkey("ctrl+l", () => viewport.pan(+50, 0));
+  viewport.mapkey("ctrl+h", () => viewport.pan(-50, 0));
+  viewport.mapkey("ctrl+k", () => viewport.pan(0, -50));
+  viewport.mapkey("ctrl+j", () => viewport.pan(0, 50));
 
-  importer.addEventListener('change', e => {
+  importer.addEventListener("change", (e) => {
     for (let file of e.target.files) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onloadend = e => {
+      reader.onloadend = (e) => {
         const img = new Image();
         img.src = reader.result;
-        editor.print('Loaded: ' + file.name);
+        editor.print("Loaded: " + file.name);
         imagesBySource[file.name] = img;
         files.push(file.name);
       };
     }
   });
 
-
-  opener.addEventListener('change', e => {
+  opener.addEventListener("change", (e) => {
     console.log(e);
     for (let file of e.target.files) {
       const reader = new FileReader();
       reader.readAsText(file);
-      reader.onloadend = e => {
+      reader.onloadend = (e) => {
         editor.source.value = reader.result;
         editor.update();
-        editor.save('MAIN');
+        editor.save("MAIN");
       };
     }
   });
 
-  document.getElementById('save-text').addEventListener('click', e => {
-    const blob = new Blob([editor.text], { type: 'text/plain' });
+  document.getElementById("save-text").addEventListener("click", (e) => {
+    const blob = new Blob([editor.text], { type: "text/plain" });
 
     // Create a URL for the Blob
     const url = URL.createObjectURL(blob);
 
     // Create an anchor element
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'script.slop';
+    link.download = "script.slop";
 
     link.click();
   });
@@ -224,13 +213,13 @@ window.addEventListener('DOMContentLoaded', () => {
   let lastChange = Date.now();
   const threshTime = 60;
 
-  editor.listen(editor, 'mousemove', (e) => {
+  editor.listen(editor, "mousemove", (e) => {
     if (e.metaKey) {
       const [token, index] = editor.tokenAt(editor.caretPosition);
 
-      if (token.type === lisp.Type.NUM) {
+      if (token.type === lisp.TokenType.NUM) {
         const n = Date.now();
-        const update = (n - lastChange) > threshTime;
+        const update = n - lastChange > threshTime;
         if (update) {
           lastChange = n;
           evalAll(false);
@@ -243,15 +232,14 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         let newVal = token.val + delta;
-        if (newVal.toString().split('.')[1]?.length > 4) {
+        if (newVal.toString().split(".")[1]?.length > 4) {
           newVal = newVal.toFixed(4);
         }
 
         editor.replaceToken(index, newVal, update, true);
-
       }
     }
-  })
+  });
 
-  editor.load('MAIN');
+  editor.load("MAIN");
 });

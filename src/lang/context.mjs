@@ -3,7 +3,7 @@
  */
 
 function error(message) {
-  throw new Error(`context – ${message}`);
+  throw new Error(`context - ${message}`);
 }
 
 export class Context {
@@ -15,24 +15,23 @@ export class Context {
     this.env = Object.setPrototypeOf({}, scope);
     this._constants = new Set();
     for (let i = 0; i < params.length; i++) {
-      if (params[i].val === '&' && params.length === i + 2) {
-        this.env[params[i + 1].val] = args.slice(i);
+      if (params[i] === "&" && params.length === i + 2) {
+        this.env[params[i + 1]] = args.slice(i);
         return;
       }
-      this.env[params[i].val] = args[i];
+      this.env[params[i]] = args[i];
     }
   }
-
 
   /**
    * Get the value of id in the context.
    * @param {string} id The identifier to get.
    * @param {string[]} subpath Nested subpath.
    * @return {any}
-   */ 
+   */
   get(id, subpath = undefined) {
     if (!(id in this.env)) {
-      error('no value found for key: ' + id);
+      error("no value found for key: " + id);
       return;
     }
 
@@ -43,11 +42,11 @@ export class Context {
     let [nestedVal, parent] = nested(this.env[id], subpath);
 
     if (nestedVal === undefined) {
-      error('subpath error for id: ' + id + ' and path: ' + subpath.join('.'));
+      error("subpath error for id: " + id + " and path: " + subpath.join("."));
     }
 
     if (nestedVal instanceof Function) {
-      return nestedVal.bind(parent)
+      return nestedVal.bind(parent);
     }
     return nestedVal;
   }
@@ -56,11 +55,11 @@ export class Context {
    * Set the value of id in the context.
    * @param {string} id The identifier to set.
    * @param {any} val The value to set.
-   * @param {boolean} Whether to treat the identifier as a variable or 
+   * @param {boolean} Whether to treat the identifier as a variable or
    *     constant binding.
    * @param {string[]} subpath Nested subpath.
    * @return {any} The value that was set.
-   */ 
+   */
   set(id, val, constant = false, subpath = undefined) {
     if (this._constants.has(id)) {
       if (!constant) {
@@ -69,18 +68,18 @@ export class Context {
         delete this.env[id];
       }
     }
-    
+
     if (constant) {
       this._constants.add(id);
     }
 
     if (!subpath || subpath.length === 0) {
-       this.env[id] = val;
-       return val;
+      this.env[id] = val;
+      return val;
     }
 
     if (!(id in this.env)) {
-      error('nested set - no top level parent: ' + id);
+      error("nested set - no top level parent: " + id);
     }
 
     setNested(this.env[id], subpath, val);
@@ -88,13 +87,12 @@ export class Context {
   }
 }
 
-
 /**
  * Search for a nested path in the object outer.
  * @param {object} outer The context to search in.
  * @param {string[]} path The array of strings to search with.
  * @return {[any, object]} A tuple where the first element is the asked for
- *     value or undefined. The second element is the direct parent which is 
+ *     value or undefined. The second element is the direct parent which is
  *     helpful for binding 'this' if the value is a function.
  */
 function nested(outer, path) {
@@ -108,13 +106,12 @@ function nested(outer, path) {
   return [parent[path[path.length - 1]], parent];
 }
 
-
 /**
  * Set for a nested path in the object outer.
  * @param {object} outer The context to search in.
  * @param {string[]} path The array of strings to search with.
  * @return {[any, object]} A tuple where the first element is the asked for
- *     value or undefined. The second element is the direct parent which is 
+ *     value or undefined. The second element is the direct parent which is
  *     helpful for binding 'this' if the value is a function.
  */
 function setNested(obj, path, value) {

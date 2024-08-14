@@ -2,118 +2,108 @@
  * @file To js "compile" extensnsion.
  */
 
-import { registerExtension, Type } from '../index.mjs';
+import { registerExtension } from "../index.mjs";
+import { SlopList, SlopPred } from "../types.mjs";
 
-registerExtension('fnjs', _fnjs);
-registerExtension('defnjs', _defnjs);
+registerExtension("fnjs", _fnjs);
+registerExtension("defnjs", _defnjs);
 
-const binaryOps = ['**', '>', '<', '>=', '<='];
-const multiOps = ['*', '+', '-', '/'];
+function isBinaryOp(op) {
+  return ["**", ">", "<", ">=", "<="].some(
+    (expectedOp) => op.valueOf() === expectedOp
+  );
+}
+function isMultiOp(op) {
+  return ["*", "+", "-", "/"].some((expectedOp) => op.valueOf() === expectedOp);
+}
 
 export function toJS(expression, context = null, useReturn = false) {
-
-  const format = (str) => useReturn ? `return ${str}` : str;
+  const format = (str) => (useReturn ? `return ${str}` : str);
   const _js = (arg) => toJS(arg, context);
 
-  if (typeof expression === 'number') 
-      return format(expression);
-  
-  if (typeof expression === 'string') 
-      return format(`"${expression}"`);
+  if (SlopPred.isNum(expression)) return format(expression);
 
-  if (expression.type === Type.STR) 
-      return format(`"${expression.val}"`);
-  
-  if (expression.type === Type.NUM) 
-    return toJS(expression.val, context);
+  if (SlopPred.isString(expression)) return format(`"${expression}"`);
 
-
-  if (expression.type === Type.IDENTIFIER) {
-
+  if (SlopPred.isSymbol(expression)) {
     try {
-      let val = context.get(expression.val);
+      let val = context.get(expression);
       return _js(val);
     } catch {
-      return format(expression.val);
-    }    
+      return format(expression);
+    }
   }
 
-  if (expression.type === Type.VEC) {
-    const vec = expression.elements.map(x => _js(x)).join(', ');
-    return format(`[${vec}]`);
+  if (!SlopPred.isList(expression)) {
+    throw new Error("toJs error!");
   }
 
-  if (expression.type !== Type.LIST) {
-    throw new Error('toJs error!')
-  }
-  
-  const fn = expression.elements[0];
-  const args = expression.elements.slice(1);
-  
-  if (binaryOps.includes(fn.val)) {
-    return format(`(${_js(args[0])} ${fn.val} ${_js(args[1])})`);
+  const [first, rest] = SlopList.decap(expression);
+
+  if (isBinaryOp(first)) {
+    const [second, third] = SlopList.take(rest, 2);
+    return format(`(${_js(second)} ${first} ${_js(third)})`);
   }
 
-  if (multiOps.includes(fn.val)) {
-    const joined = args.map(x => _js(x)).join(` ${fn.val} `);
+  if (isMultiOp(first)) {
+    const joined = rest.map((x) => _js(x)).join(` ${first} `);
     return format(`(${joined})`);
   }
 
-  if (fn.val === '=') {
-    return format(`(${_js(args[0])} === ${_js(args[1])})`);
+  if (first.valueOf() === "=") {
+    const [second, third] = SlopList.take(rest, 2);
+    return format(`(${_js(second)} === ${_js(third)})`);
   }
 
-  if (fn.val === 'if') {
-    return format(`(${_js(args[0])} ? ${_js(args[1])} : ${_js(args[2])})`);
+  if (first.valueOf() === "if") {
+    const [cnd, thn, els] = SlopList.take(rest, 3);
+    return format(`(${_js(cnd)} ? ${_js(thn)} : ${_js(els)})`);
   }
 
-  if (Math[fn.val] !== undefined) {
-    const interpretedArgs = args.map(x => _js(x)).join(', ');
-    return format(`Math.${fn.val}(${interpretedArgs})`);
+  if (Math[first] !== undefined) {
+    const interpretedArgs = rest.map((x) => _js(x)).join(", ");
+    return format(`Math.${first}(${interpretedArgs})`);
   }
 
-  if (fn.val === 'nth') {
-    const arr = _js(args[0]);
-    const ndx = _js(args[1]);
+  if (first === "nth") {
+    const [arr, ndx] = SlopList.take(rest, 2);
     return format(`${arr}[${ndx}]`);
   }
 
-  if (fn.val === 'def') {
+  if (first === "def") {
+    const [name, val] = SlopList.take(rest, 2);
     if (useReturn) {
-      const id = toJS(args[0]);
-      return `let ${id} = ${_js(args[1])}; id`; 
+      const id = toJS(name);
+      return `let ${id} = ${_js(val)}; id`;
     }
-    return `let ${_js(args[0])} = ${_js(args[1])}`;
+    return `let ${_js(name)} = ${_js(val)}`;
   }
 
-  const list = expression.elements.map(x => _js(x)).join(', ');
+  const list = expression.map((x) => _js(x)).join(", ");
   return format(`[${list}]`);
 }
 
 function _fnjs(elements, context) {
-  const params = elements[0];
-  const body = elements.slice(1);
-  console.log({body})
+  const [params, body] = SlopList.decap(elements);
+  console.log({ body });
   const bodyExprs = [];
-  for (let i = 0; i < body.length; i++) {
-    if (i === body.length - 1) {
-      bodyExprs.push(toJS(body[i], context, true));
+  SlopList.forEach(body, (cur, i) => {
+    if (i === SlopList.len(body) - 1) {
+      bodyExprs.push(toJS(cur, context, true));
     } else {
-      bodyExprs.push(toJS(body[i], context));
+      bodyExprs.push(toJS(cur, context));
     }
-  }
+  });
 
   const paramsJS = toJS(params, context).slice(1, -1);
-  const fnString = `(${paramsJS}) => {\n  ${bodyExprs.join('\n  ')}\n}`;
+  const fnString = `(${paramsJS}) => {\n  ${bodyExprs.join("\n  ")}\n}`;
   console.log(fnString);
   return eval(fnString);
 }
 
-
 function _defnjs(elements, context) {
-  const label = elements[0].val;
-  const func = _fnjs(elements.slice(1), context);
+  const [label, rest] = SlopList.decap(elements);
+  const func = _fnjs(rest, context);
   func.funcName = label;
   return context.set(label, func);
 }
-
