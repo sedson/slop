@@ -1,6 +1,8 @@
 import { TokenType } from "./token.mjs";
-import { SlopVal } from "./types.mjs";
+import { SlopList, SlopVal } from "./types.mjs";
 import { Reader } from "./parsing-utils.mjs";
+import { prettyPrint } from "./pretty-print.mjs";
+import { read } from "./index.mjs";
 
 function error(message, token) {
   const location = token ? ` [ line ${token.line}, col ${token.col} ]` : "";
@@ -23,6 +25,7 @@ function match(reader, type) {
   return false;
 }
 
+
 /**
  * Parse an expression.
  * @param {Reader} reader
@@ -40,9 +43,9 @@ function expression(reader) {
   // For now, it's just the same as round parens.
   if (match(reader, TokenType.L_BRACKET)) {
     if (match(reader, TokenType.R_BRACKET)) {
-      return SlopVal.nil();
+      return SlopVal.vec([]);
     }
-    return list(reader, TokenType.R_BRACKET);
+    return list(reader, TokenType.R_BRACKET, true);
   }
 
   if (match(reader, TokenType.L_BRACE)) {
@@ -60,16 +63,18 @@ function expression(reader) {
  * @param {Reader} reader
  * @return {ExpressionNode}
  */
-function list(reader, closeToken) {
+function list(reader, closeToken, asVec = false) {
   const elements = [];
 
   while (!match(reader, closeToken)) {
     let expr = expression(reader);
-    if (expr != null) elements.push(expr);
+    elements.push(expr);
   }
 
-  return SlopVal.list(elements);
+  return asVec ? SlopVal.vec(elements) : SlopVal.list(elements);
 }
+
+
 
 /**
  * Parse an atom.
@@ -79,29 +84,29 @@ function list(reader, closeToken) {
 function atom(reader) {
   const token = reader.next();
   switch (token.type) {
-    case TokenType.SYMBOL:
-      return SlopVal.symbol(token.val, token.subpath);
+  case TokenType.SYMBOL:
+    return SlopVal.symbol(token.val, token.subpath);
 
-    case TokenType.KEY:
-      return SlopVal.key(token.val);
+  case TokenType.KEY:
+    return SlopVal.key(token.val);
 
-    case TokenType.NUM:
-      return SlopVal.num(token.val);
+  case TokenType.NUM:
+    return SlopVal.num(token.val);
 
-    case TokenType.STR:
-      return SlopVal.string(token.val);
+  case TokenType.STR:
+    return SlopVal.string(token.val);
 
-    case TokenType.COMMENT:
-      return false;
+  // Because, undefined is nil in slop world, use the value null to signal 
+  // dropping as expression from the eval tree.
+  case TokenType.COMMENT:
+  case TokenType.EOF:
+    return null;
 
-    case TokenType.EOF:
-      return false;
-
-    default:
-      const typeStr = TokenType.getString(token.type);
-      error(
-        `unexpected type: ${typeStr}, line: ${token.line}, col: ${token.col}`
-      );
+  default:
+    const typeStr = TokenType.getString(token.type);
+    error(
+      `unexpected type: ${typeStr}, line: ${token.line}, col: ${token.col}`
+    );
   }
 }
 
@@ -114,16 +119,17 @@ function dict(reader) {
   const data = {};
   let isKey = true;
   let key = null;
+  
   while (!match(reader, TokenType.R_BRACE)) {
     if (isKey) {
       key = expression(reader);
     } else {
-      data[key.val] = expression(reader);
+      data[key] = expression(reader);
     }
     isKey = !isKey;
   }
 
-  return SlopVal.dict({});
+  return SlopVal.dict(data);
 }
 
 /**
@@ -137,7 +143,9 @@ export function parse(tokens) {
 
   while (!reader.done()) {
     let exp = expression(reader);
-    if (exp) expressions.push(exp);
+    if (exp !== null) {
+      expressions.push(exp);
+    }
   }
   return expressions;
 }

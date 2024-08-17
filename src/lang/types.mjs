@@ -78,8 +78,16 @@ export const SlopVal = {
     return xs;
   },
 
+  vec(xs) {
+    if (!Array.isArray(xs)) {
+      throw new Error("Expected array to construct vector");
+    }
+    return SlopVec.from(xs);
+  },
+
+
   dict(map) {
-    if (map == null || !map?.constructor === Object) {
+    if (map == null || map?.constructor !== Object) {
       throw new Error("Expexted plain JS object to construct dict");
     }
     return map;
@@ -181,7 +189,7 @@ export const SlopDict = {
 
   mapEntries(dict, fn) {
     const newDict = {};
-    for (let entry in Object.entries(dict)) {
+    for (let entry of Object.entries(dict)) {
       const [newKey, newVal] = fn(entry);
       newDict[newKey] = newVal;
     }
@@ -214,9 +222,13 @@ export const SlopPred = {
 
   isNum: (val) => typeof val === "number",
 
-  isList: Array.isArray,
+  isVec: (val) => val?.constructor?.name === 'SlopVec',
+
+  isList: (val) => Array.isArray(val) && !SlopPred.isVec(val),
 
   isDict: (val) => val?.constructor === Object,
+
+  isListLike: (val) => SlopPred.isVec(val) || SlopPred.isList(val),
 
   isFn: (val) => typeof val === "function",
 };
@@ -234,7 +246,11 @@ export function isAtom(val) {
 
 Object.freeze(SlopPred);
 
-class SlopText extends String {}
+export function getType(val) {
+  
+}
+
+export class SlopText extends String {}
 
 class SlopSymbol extends SlopText {
   constructor(val, subpath = undefined) {
@@ -254,3 +270,5 @@ class SlopKey extends SlopText {
     super(val);
   }
 }
+
+class SlopVec extends Array {}

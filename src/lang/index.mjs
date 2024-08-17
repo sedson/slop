@@ -6,15 +6,12 @@ import { SlopType, SlopVal } from "./types.mjs";
 import { Context } from "./context.mjs";
 import { tokenize } from "./tokenize.mjs";
 import { parse } from "./parse.mjs";
-import { interpret, core, extensions } from "./interpret.mjs";
+import { interpret, Core, extensions } from "./interpret.mjs";
 import { prettyPrint } from "./pretty-print.mjs";
 import { utils, math, lists, prng } from "./lib.mjs";
 
 export const SpecialWords = {
   nil: SlopVal.nil(),
-  // Is `null` a valid slop val? Should we get rid of this in favor of `nil`?
-  // Right now we have no explicit support for `null` in the SLOP type system
-  null: null,
   empty: SlopVal.list([]),
   true: SlopVal.bool(true),
   false: SlopVal.bool(false),
@@ -38,7 +35,7 @@ export {
  * Keywords for syntax highlight.
  * @type {string[]}
  */
-export const keywords = Object.keys({ ...core, ...SpecialWords });
+export const keywords = Object.keys({ ...Core, ...SpecialWords });
 
 /**
  * Read source text and return a tokens array and a syntax tree.
@@ -58,10 +55,7 @@ export function run(source, context) {
   const tokens = tokenize(source);
   try {
     const tree = parse(tokens);
-
-    console.log(tree, tokens);
-
-    let result = null;
+    let result = undefined;
 
     for (let expression of tree) {
       result = interpret(expression, context);

@@ -2,6 +2,9 @@
  * @file Helpers for string parsing.
  */ 
 
+/**
+ * String or array reader.
+ */ 
 export class Reader {
   /** 
    * @param {string|array} data 
@@ -10,7 +13,7 @@ export class Reader {
     this.data = data;
     this.loc = 0;
   }
-  
+   
   peek() { return this.data[this.loc]; }
   next() { return this.data[this.loc++]; }
   done() { return this.loc >= this.data.length; }

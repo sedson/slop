@@ -1,4 +1,3 @@
-import { TokenType } from "./token.mjs";
 import {
   isAtom,
   SlopType,
@@ -9,39 +8,177 @@ import {
   SlopDict,
   SlopBool,
 } from "./types.mjs";
-import { SpecialWords } from "./index.mjs";
+import { prettyPrint, SpecialWords } from "./index.mjs";
 import { Context } from "./context.mjs";
+
 
 function error(message) {
   throw new Error(`interpret - ${message}`);
 }
 
+
+/**
+ * Bind a symbol in context. Handles destructuring. Used for the core functions 
+ * 'def', 'var', and 'set'.
+ * @param {array} elements A two-element array/list. The simplest example would 
+ *     be something like [a : Symbol, 400] - bind the value 400 to the symbol a.
+ * @param {Context} context The parent context/scope
+ * @param {boolean} isDef Flag for whether we are looking at a def call or
+ *     not. The Context handles these differently.
+ * @return {Atom|Form} The interpreted result of right hand arm of the 
+ *     assignment.
+ */ 
+function setWithDestructure(elements, context, isDef) {
+  const [ first, second ] = elements
+
+  const interpreted = interpret(second, context);
+
+  if (SlopPred.isSymbol(first)) {
+    return context.set(first, interpreted, isDef, first.subpath);
+  }
+
+  if (SlopPred.isListLike(first) && SlopPred.isListLike(interpreted)) {
+    SlopList.forEach(first, (val, i) => {
+      setWithDestructure([val, second[i]], context, isDef);
+    });
+    return interpreted;
+  }
+
+  if (SlopPred.isDict(first) && SlopPred.isDict(second)) {
+    for (let [key, sym] of SlopDict.entries(first)){
+      setWithDestructure([sym, second[key]], context, isDef);
+    }
+    return interpreted;
+  }
+
+  error("unexpected types in assignment " + prettyPrint(first, second))
+}
+
+
+
+/**
+ * Create a lambda.
+ * @param {array} elements The first elements is the list of formal param 
+ *     symbols. The remaining elements are the body of the function.
+ * @param {Context} context The parent context/scope
+ * @param {boolean} The name of the functions (only if not anon) for pretty 
+ *     printing.
+ * @return {function}
+ */
+function lambda(elements, context, name = undefined) {
+  const [params, body] = SlopList.decap(elements);
+  return SlopVal.fn((...args) => {
+    const localContext = new Context(context.env, params ?? [], args);
+    return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
+  }, name);
+}
+
+/**
+ * Create a up-scoped, headless lambda. This runs without its own local 
+ * context and 
+ * @param {array} elements The first elements is the list of formal param 
+ *     symbols. The remaining elements are the body of the function.
+ * @param {Context} context The parent context/scope
+ * @param {boolean} The name of the functions (only if not anon) for pretty 
+ *     printing.
+ * @return {function}
+ */
+function lambdaUpscope(elements, context) {
+  const [params, body] = SlopList.decap(elements);
+  return SlopVal.fn(() => {
+    return SlopList.reduce(body, (_, expr) => interpret(expr, context));
+  });
+}
+
+
+
 /**
  * The core functions.
  */
-export const core = {
-  def: _def,
+export const Core = {
+  def: (expr, context) => {
+    return setWithDestructure(expr, context, true);
+  },
 
-  var: _var,
-  fn: _fn,
-  fx: _fx,
-  defn: _defn,
+  var: (expr, context) => {
+    return setWithDestructure(expr, context, false);
+  },
+
+  set: (expr, context) => {
+    return setWithDestructure(expr, context, false);
+  },
+
+  fn: (expr, context) => {
+    return lambda(expr, context);
+  },
+
+  fx: (expr, context) => {
+    return lambda([SlopVal.symbol("x"), ...expr], context)
+  },
+
+  defn: (expr, context) => {
+    const [name, rest] = SlopList.decap(expr);
+    const func = lambda(rest, context, name);
+    return Core.def([name, func], context, true);
+  },
+
+  list: (expr, context) => {
+    return SlopVal.list(expr.map(e => interpret(e, context)));
+  },
+
+  let: (expr, context) => {
+    const localContext = new Context(context.env);
+    const [definitions, body] = SlopList.decap(expr);
+
+    SlopList.forEach(definitions, (def) => {
+      Core.def(def, localContext);
+    });
+
+    return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
+  },
+
+  for: (expr, context) => {
+    const localContext = new Context(context.env);
+    const [ [ label, control ], body ] = SlopList.split(expr, 2);
+    let [start, end, by] = SlopList.map(control, (n) => interpret(n, context));
+    by = by ?? 1;
+
+    if ( SlopPred.isNil(start) || SlopPred.isNil(end) || Math.sign(end - start) !== Math.sign(by)) {
+      error(`malformed list control: [let _ = ${start}; _ to ${end}; _ += ${by}`);
+    }
+
+    const func = lambdaUpscope([SlopVal.list([label]), ...body], localContext);
+    let res = SlopVal.nil();
+
+    const done = (i) => (end > start ? i < end : i > end);    
+    for (let i = start; done(i); i += by) {
+      localContext.set(label, i);
+      res = func();
+    }
+    return res;
+  },
+
+  if: (expr, context) => {
+    const [predicate, ifBranch, elseBranch] = SlopList.take(expr, 3);
+    let condition = interpret(predicate, context);
+    if (SlopPred.isNil(condition) || condition === false) {
+      return interpret(elseBranch, context);
+    } else {
+      return interpret(ifBranch, context);
+    }
+  },
+
+
+
+
   defmacro: _defmacro,
-
-  if: _if,
   cond: _cond,
-  for: _for,
-  set: _set,
-  
   quote: _quote,
   unquote: _unquote,
   quasiquote: _quasiquote,
-
   eval: _eval,
   type: _type,
   retype: _retype,
-  let: _let,
-  list: _list,
 };
 
 /**
@@ -58,7 +195,12 @@ export const extensions = {};
 export function interpret(expression, context) {
   // Create a new context if needed.
   if (!context) context = new Context();
+  
   const interpInCtx = (expr) => interpret(expr, context);
+
+  if (SlopPred.isFn(expression)) {
+    return expression;
+  }
 
   // Keyword check.
   if (SlopPred.isSymbol(expression) && expression in SpecialWords)
@@ -75,9 +217,12 @@ export function interpret(expression, context) {
     return SlopDict.mapVals(expression, interpInCtx);
   }
 
+  if (SlopPred.isVec(expression)) {
+    return SlopList.map(expression, interpInCtx);
+  }
+
   if (!SlopPred.isList(expression)) {
-    console.log("PROBLEM", expression);
-    error("Unhandled non-list case");
+    error(`unnhandled non-list case: ${expression}` );
   }
 
   if (!SlopList.len(expression)) {
@@ -86,11 +231,9 @@ export function interpret(expression, context) {
 
   let [first, rest] = SlopList.decap(expression);
 
-  // if (first === "foo") debugger;
-
   // Check for core functions.
-  if (first in core) {
-    return core[first](rest, context);
+  if (first in Core) {
+    return Core[first](rest, context);
   }
 
   // Check for extensions.
@@ -117,73 +260,8 @@ export function interpret(expression, context) {
   error("first elem not a function: " + evaledExprs[0]);
 }
 
-/**
- * Define a static variable.
- */
-function _def(elements, context) {
-  return _contextSet(elements, context, true);
-}
 
-/**
- * Define a dynamic variable.
- */
-function _var(elements, context) {
-  return _contextSet(elements, context, false);
-}
 
-function _set(elements, context) {
-  return _contextSet(elements, context, false);
-}
-
-function _contextSet(elements, context, isDef) {
-  const interpInCtx = (expr) => interpret(expr, context);
-  const [first, second] = SlopList.take(elements, 2);
-
-  if (SlopPred.isList(first) && SlopPred.isList(second)) {
-    const interpreted = SlopList.map(second, interpInCtx);
-
-    SlopList.forEach(first, (val, i) => {
-      context.set(val, SlopList.at(interpreted, i), isDef, val.subpath);
-    });
-
-    return interpreted;
-  }
-
-  return context.set(first, interpInCtx(second), isDef, first.subpath);
-}
-
-/**
- * Create a lambda.
- * @return {function}
- */
-function _fn(elements, context, name = undefined) {
-  const [params, body] = SlopList.decap(elements);
-
-  return SlopVal.fn((...args) => {
-    const localContext = new Context(context.env, params, args);
-    return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
-  }, name);
-}
-
-/**
- * Create a simplified lamba that does not have its own local scope or params.
- * @return {function}
- */
-function _fnBasic(elements, context) {
-  return SlopVal.fn(() =>
-    SlopList.reduce(elements, (_, expr) => interpret(expr, context))
-  );
-}
-
-function _fx(elements, context) {
-  return SlopVal.fn((x) => {
-    const localContext = new Context(context.env, [{ val: "x" }], [x]);
-    console.log(localContext);
-    return SlopList.reduce(elements, (_, expr) =>
-      interpret(expr, localContext)
-    );
-  });
-}
 
 function _type(elements, context, initial = true) {
   if (SlopPred.isList(elements) && initial) {
@@ -211,58 +289,7 @@ function _type(elements, context, initial = true) {
   error(`Unknown runtime type for value ${val}`);
 }
 
-/**
- * Define a function.
- */
-function _defn(elements, context) {
-  const [name, body] = SlopList.decap(elements);
-  const func = _fn(body, context, name);
-  return context.set(name, func);
-}
 
-function _if(elements, context) {
-  const [predicate, ifBranch, elseBranch] = SlopList.take(elements, 3);
-
-  let condition = interpret(predicate, context);
-  if (
-    (SlopPred.isBool(condition) && SlopBool.isFalse(condition)) ||
-    SlopPred.isNil(condition)
-  ) {
-    return interpret(elseBranch, context);
-  } else {
-    return interpret(ifBranch, context);
-  }
-}
-
-function _for(elements, context) {
-  const [[label, controlValues], body] = SlopList.split(2);
-
-  const localContext = new Context(context.env);
-
-  let [start, end, by] = SlopList.map(controlValues, (n) =>
-    interpret(n, context)
-  );
-  by = by ?? 1;
-
-  if (
-    SlopPred.isNil(start) ||
-    SlopPred.isNil(end) ||
-    Math.sign(end - start) !== Math.sign(by)
-  ) {
-    error(`Malformed list control: [let _ = ${start}; _ to ${end}; _ += ${by}`);
-  }
-
-  const fn = _fnBasic(body, localContext);
-  let res = null;
-
-  const done = (i) => (end > start ? i < end : i > end);
-  for (let i = start; done(i); i += by) {
-    localContext.set(label, i);
-    res = fn();
-  }
-
-  return res;
-}
 
 function _cond(elements, context) {
   for (let arm of SlopList.iter(elements)) {
@@ -285,34 +312,6 @@ function _quote(elements) {
  * call interpret on that x in the current context.
  */ 
 function _quasiquote(element, context) {
-  if (Array.isArray(element)) {
-    return _quasiquote(element[0], context);
-  }
-
-  // console.log('QUASI', element);
-
-  if (element.type === Type.LIST) {
-    
-    if (element.elements[0].val === 'unquote') {
-      return interpret(element.elements[1], context);
-    }
-
-    return {
-      type: Type.LIST,
-      elements: element.elements.map(n => _quasiquote(n, context)),
-    };
-  }
-
-  if (element.type === Type.VEC) {
-    return {
-      type: Type.VEC,
-      elements: element.elements.map(n => _quasiquote(n, context)),
-    };
-  }
-
-
-
-  return element;
 }
 
 
@@ -355,27 +354,7 @@ function _retype(element, context) {
  */
 function _eval(elements, context) {
   return interpret(interpret(SlopList.first(elements), context), context);
-  // const expr = interpret(SlopList.first(elements), context);
-  // return interpret(expr, context);
 }
-
-function _let(elements, context) {
-  const [bindings, body] = SlopList.decap(elements);
-
-  const localContext = new Context(context.env);
-
-  for (let binding of SlopList.iter(bindings)) {
-    _def(binding, localContext);
-  }
-
-  let res = undefined;
-  for (let elem of SlopList.iter(body)) {
-    res = interpret(elem, localContext);
-  }
-
-  return res;
-}
-
 
 function _list(elements, context) {
   return SlopVal.list(elements.map((e) => interpret(e, context)));
