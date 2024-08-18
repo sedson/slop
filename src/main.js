@@ -136,6 +136,7 @@ window.addEventListener("DOMContentLoaded", () => {
     } else {
       editor.error(error);
       console.error(error);
+
     }
   };
 
@@ -239,6 +240,10 @@ window.addEventListener("DOMContentLoaded", () => {
         editor.replaceToken(index, newVal, update, true);
       }
     }
+  });
+
+  window.addEventListener("brush", (e) => {
+    evalAll(false);
   });
 
   editor.load("MAIN");

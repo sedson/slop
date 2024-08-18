@@ -6,8 +6,17 @@ const markup = `
 <link rel="stylesheet" href="src/components/viewport-canvas/style.css">
 <div class="viewport">
   <canvas class="view-canvas"></canvas>
+  <div class="buttons">
+    <div class="button mode selected" data-mode="PAN">MOVE</div>
+    <div class="button mode" data-mode="BRUSH">BRUSH</div>
+  </div>
 </div>
 `.trim();
+
+export const ViewportModes = {
+  PAN: "PAN",
+  BRUSH: "BRUSH"
+};
 
 class ViewportCanvas extends HTMLElement {
   constructor() {
@@ -19,6 +28,7 @@ class ViewportCanvas extends HTMLElement {
     this.viewport = this.root.querySelector('.viewport');
     this.viewCanvas = this.root.querySelector('.view-canvas');
     this.viewCtx = this.viewCanvas.getContext('2d');
+    this.modeButtons = this.root.querySelectorAll('.button.mode');
 
     this.keymap = new Map();
 
@@ -33,6 +43,18 @@ class ViewportCanvas extends HTMLElement {
     };
 
     this._resizeHandler = window.addEventListener('resize', () => this.draw());
+
+    this.mode = ViewportModes.PAN;
+    this.setMode(ViewportModes.PAN);
+
+    for (let btn of this.modeButtons) {
+      btn.addEventListener('click', (e) => {
+        this.setMode(btn.dataset.mode);
+        console.log(this.mode);
+      })
+    }
+
+    this.brushPoints = [];
   }
 
   get width() { return this.viewport?.clientWidth ?? 0; }
@@ -114,9 +136,19 @@ class ViewportCanvas extends HTMLElement {
 
     this.listen(window, 'mousemove', (e) => {
       if (!this._mouseDown) return;
-      this.state.left += e.movementX;
-      this.state.top += e.movementY;
-      this.draw();
+
+      if (this.mode === ViewportModes.PAN) {
+        this.state.left += e.movementX;
+        this.state.top += e.movementY;
+        this.draw();
+      } else if (this.mode === ViewportModes.BRUSH) {
+        this.brushPoints.push([
+          (e.offsetX - this.state.left) / this.state.scale,
+          (e.offsetY - this.state.top) / this.state.scale,
+        ]);
+        window.dispatchEvent(new CustomEvent("brush"));
+        this.draw();
+      }
     });
 
     this.listen(this.viewport, 'wheel', (e) => {
@@ -144,6 +176,16 @@ class ViewportCanvas extends HTMLElement {
     this.state.left += x;
     this.state.top += y;
     this.draw();
+  }
+
+  setMode(mode) {
+    this.mode = mode;
+    for (let btn of this.modeButtons) {
+      btn.classList.remove('selected');
+      if (btn.dataset.mode === this.mode) {
+        btn.classList.add('selected');
+      }
+    }
   }
 }
 

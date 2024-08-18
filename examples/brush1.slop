@@ -1,0 +1,39 @@
+(def start (now))
+(seed 322)
+
+(defn remap [val minIn maxIn minOut maxOut]
+  (+ (* (/ (- val minIn) (- maxIn minIn)) (- maxOut minOut)) minOut))
+
+(defn hsl [h s l]
+  (set s (join (clamp s 0 100) "%"))
+  (set l (join (clamp l 0 100) "%"))
+  (join "hsl(" h "," s "," l ")"))
+
+(defn rand-range (mn mx)
+  (remap (rand) 0 1 mn mx))
+
+(def cnvs 
+  (-> (Canvas.new 1024 1024)
+      (fx (x.fill (hsl 126 21 41)))))
+
+
+(defn brush-A (pt)
+  (def brush-col (hsl 164 80 50))
+  (def radius (clamp 17 0 1000)) 
+  (def [x y] pt)
+  (cnvs.ellipse x y radius radius brush-col))
+
+(defn brush-B (pt)
+  (def hue-jitter (rand-range 0 64))
+  (def size-jitter (rand-range 0 0))
+
+  (def brush-col (hsl (+ 737 hue-jitter) 33 62))
+  (def radius (clamp (+ 33 size-jitter) 0 1000)) 
+  (def [x y] pt)
+  # (cnvs.ellipse x y radius radius brush-col)
+  1
+)
+
+(for-each viewport.brushPoints brush-B)
+  
+(view cnvs)

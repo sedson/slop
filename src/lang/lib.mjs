@@ -53,7 +53,6 @@ export const utils = {
 export const math = {
   '*': (...args) => args.reduce((a, b) => a * b, 1),
   '+': (...args) => {
-    console.log('+', args, args.reduce((a, b) => a + b, 0));
     return args.reduce((a, b) => a + b, 0);
   },
   '-': (...args) => (args.length === 1) ? -args[0] : args.slice(1).reduce((a, b) => a - b, args[0]),

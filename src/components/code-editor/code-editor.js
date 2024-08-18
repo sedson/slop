@@ -702,15 +702,12 @@ export class CodeEditor extends HTMLElement {
       this._pushState();
     }
 
-    console.log({ tokenIndex, value });
-
     const str = this.text;
     const sel = this.selection;
 
     const token = this.tokens[tokenIndex];
     const before = str.slice(0, token.range[0]);
     const after = str.slice(token.range[1]);
-    console.log(before + value + after)
 
     this.source.value = before + value + after;
     if (selectToken) {
