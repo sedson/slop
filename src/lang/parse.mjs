@@ -1,5 +1,5 @@
 import { TokenType } from "./token.mjs";
-import { SlopList, SlopVal } from "./types.mjs";
+import { SlopList, SlopType } from "./types.mjs";
 import { Reader } from "./parsing-utils.mjs";
 import { prettyPrint } from "./pretty-print.mjs";
 import { read } from "./index.mjs";
@@ -34,7 +34,7 @@ function match(reader, type) {
 function expression(reader) {
   if (match(reader, TokenType.L_PAREN)) {
     if (match(reader, TokenType.R_PAREN)) {
-      return SlopVal.nil();
+      return SlopType.nil();
     }
     return list(reader, TokenType.R_PAREN);
   }
@@ -43,14 +43,14 @@ function expression(reader) {
   // For now, it's just the same as round parens.
   if (match(reader, TokenType.L_BRACKET)) {
     if (match(reader, TokenType.R_BRACKET)) {
-      return SlopVal.vec([]);
+      return SlopType.vec([]);
     }
     return list(reader, TokenType.R_BRACKET, true);
   }
 
   if (match(reader, TokenType.L_BRACE)) {
     if (match(reader, TokenType.R_BRACE)) {
-      return SlopVal.dict({});
+      return SlopType.dict({});
     }
     return dict(reader);
   }
@@ -68,10 +68,12 @@ function list(reader, closeToken, asVec = false) {
 
   while (!match(reader, closeToken)) {
     let expr = expression(reader);
-    elements.push(expr);
+    if (expr !== null) {
+      elements.push(expr);  
+    }
   }
 
-  return asVec ? SlopVal.vec(elements) : SlopVal.list(elements);
+  return asVec ? SlopType.vec(elements) : SlopType.list(elements);
 }
 
 
@@ -85,16 +87,16 @@ function atom(reader) {
   const token = reader.next();
   switch (token.type) {
   case TokenType.SYMBOL:
-    return SlopVal.symbol(token.val, token.subpath);
+    return SlopType.symbol(token.val, token.subpath);
 
   case TokenType.KEY:
-    return SlopVal.key(token.val);
+    return SlopType.key(token.val);
 
   case TokenType.NUM:
-    return SlopVal.num(token.val);
+    return SlopType.num(token.val);
 
   case TokenType.STR:
-    return SlopVal.string(token.val);
+    return SlopType.string(token.val);
 
   // Because, undefined is nil in slop world, use the value null to signal 
   // dropping as expression from the eval tree.
@@ -129,7 +131,7 @@ function dict(reader) {
     isKey = !isKey;
   }
 
-  return SlopVal.dict(data);
+  return SlopType.dict(data);
 }
 
 /**

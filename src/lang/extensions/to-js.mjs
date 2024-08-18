@@ -3,7 +3,7 @@
  */
 
 import { registerExtension } from "../index.mjs";
-import { SlopList, SlopPred } from "../types.mjs";
+import { SlopList, SlopType } from "../types.mjs";
 
 registerExtension("fnjs", _fnjs);
 registerExtension("defnjs", _defnjs);
@@ -21,11 +21,11 @@ export function toJS(expression, context = null, useReturn = false) {
   const format = (str) => (useReturn ? `return ${str}` : str);
   const _js = (arg) => toJS(arg, context);
 
-  if (SlopPred.isNum(expression)) return format(expression);
+  if (SlopType.isNum(expression)) return format(expression);
 
-  if (SlopPred.isString(expression)) return format(`"${expression}"`);
+  if (SlopType.isString(expression)) return format(`"${expression}"`);
 
-  if (SlopPred.isSymbol(expression)) {
+  if (SlopType.isSymbol(expression)) {
     try {
       let val = context.get(expression);
       return _js(val);
@@ -34,7 +34,7 @@ export function toJS(expression, context = null, useReturn = false) {
     }
   }
 
-  if (!SlopPred.isList(expression)) {
+  if (!SlopType.isList(expression)) {
     throw new Error("toJs error!");
   }
 
@@ -85,7 +85,6 @@ export function toJS(expression, context = null, useReturn = false) {
 
 function _fnjs(elements, context) {
   const [params, body] = SlopList.decap(elements);
-  console.log({ body });
   const bodyExprs = [];
   SlopList.forEach(body, (cur, i) => {
     if (i === SlopList.len(body) - 1) {

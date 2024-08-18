@@ -2,20 +2,20 @@
  * @file A lisp dialect.
  */
 import { TokenType } from "./token.mjs";
-import { SlopType, SlopVal } from "./types.mjs";
+import { SlopType } from "./types.mjs";
 import { Context } from "./context.mjs";
 import { tokenize } from "./tokenize.mjs";
 import { parse } from "./parse.mjs";
-import { interpret, Core, extensions } from "./interpret.mjs";
+import { interpret, Core } from "./interpret.mjs";
 import { prettyPrint } from "./pretty-print.mjs";
 import { utils, math, lists, prng } from "./lib.mjs";
 
 export const SpecialWords = {
-  nil: SlopVal.nil(),
-  empty: SlopVal.list([]),
-  true: SlopVal.bool(true),
-  false: SlopVal.bool(false),
-  else: SlopVal.bool(true),
+  nil: SlopType.nil(),
+  empty: SlopType.list([]),
+  true: SlopType.bool(true),
+  false: SlopType.bool(false),
+  else: SlopType.bool(true),
 };
 
 export const lib = { ...utils, ...math, ...lists, ...prng };
@@ -28,8 +28,10 @@ export {
   parse,
   interpret,
   prettyPrint,
-  extensions,
 };
+
+export const extensions = {};
+
 
 /**
  * Keywords for syntax highlight.
@@ -51,19 +53,36 @@ export function read(source) {
   }
 }
 
+let _time = performance.now();
+
+function time() {
+  let now = performance.now();
+  let elapsed = now - _time;
+  _time = now;
+  return elapsed;
+}
+
 export function run(source, context) {
+  const stats = {};
+  time();
+
   const tokens = tokenize(source);
+  stats.tokenize = time();
+
   try {
     const tree = parse(tokens);
+    stats.parse = time();
     let result = undefined;
 
     for (let expression of tree) {
       result = interpret(expression, context);
     }
 
-    return { ok: true, result, tree, tokens };
+    stats.interpret = time();
+
+    return { ok: true, result, tree, tokens, stats };
   } catch (e) {
-    return { ok: false, error: e, tokens };
+    return { ok: false, error: e, tokens, stats};
   }
 }
 

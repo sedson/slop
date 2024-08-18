@@ -114,13 +114,13 @@ export function tokenize(input) {
       continue;
     }
 
-    if (is.singlequote(char)) {
-      while (is.word(peek()) && !reader.done()) {
-        next();
-      }
-      push(TokenType.STR, grab().slice(1), grab());
-      continue;
-    }
+    // if (is.singlequote(char)) {
+    //   while (is.word(peek()) && !reader.done()) {
+    //     next();
+    //   }
+    //   push(TokenType.STR, grab().slice(1), grab());
+    //   continue;
+    // }
 
     if (is.colon(char)) {
       while (is.word(peek()) && !reader.done()) {
@@ -154,37 +154,11 @@ export function tokenize(input) {
       next();
     }
 
-    tokens.push(_symbol(grab(), [tokenStart, reader.loc], line, col));
+    push(TokenType.SYMBOL, grab(), grab());
   }
 
   tokens.push(
     token(TokenType.EOF, "", "", [reader.loc, reader.loc], line, col)
   );
   return tokens;
-}
-
-/**
- * Some extra logic for parsing symbols.
- */
-function _symbol(str, range, line, col) {
-  if (str.indexOf(".") === -1) {
-    return new SymbolToken(str, str, range, line, col);
-  }
-
-  const reader = new Reader(str);
-
-  let parts = [];
-  let start = 0,
-    loc = 0;
-  while (!reader.done()) {
-    loc = reader.loc;
-    let char = reader.next();
-    if (is.dot(char)) {
-      parts.push(reader.grab(start, loc));
-      start = loc + 1;
-    }
-  }
-  parts.push(reader.grab(start, loc + 1));
-
-  return new SymbolToken(parts[0], str, range, line, col, parts.slice(1));
 }

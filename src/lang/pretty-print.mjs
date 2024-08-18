@@ -1,71 +1,54 @@
 import { TokenType } from "./token.mjs";
-import { SlopText } from "./types.mjs";
+import { SlopType } from "./types.mjs";
 
 function isObj(any) {
-  return typeof any === "object" && 
-    !Array.isArray(any) && 
-    any !== null && 
+  return typeof any === "object" &&
+    !Array.isArray(any) &&
+    any !== null &&
     !(any instanceof String);
 }
 
-export function prettyPrint(item) {
-  if (item === undefined) return "nil";
 
-  if (item === null) {
-    return "null";
+export function prettyPrint(item) {
+  if (item === undefined) {
+    return "nil";
   }
 
-  if (typeof item === "number") {
-    return item;
+  if (item === null) {
+    return "uncaught null";
   }
 
   if (TokenType.valid(item)) {
     return TokenType.getString(item);
   }
 
-  if (item.type !== undefined) {
-    if (item.type === TokenType.LIST) {
-      return `${TokenType.getString(TokenType.LIST)} – ${prettyPrint(
-        item.elements
-      )}`;
-    }
-
-    if (item.type === TokenType.VEC) {
-      return `${TokenType.getString(TokenType.VEC)} – ${prettyPrint(
-        item.elements
-      )}`;
-    }
-
-    if (item.type === TokenType.DICT) {
-      return `${TokenType.getString(TokenType.DICT)} – ${prettyPrint(
-        item.dict
-      )}`;
-    }
-
-    return `${TokenType.getString(item.type)} – ${item.val}`;
+  if (SlopType.valid(item)) {
+    return SlopType.getString(item);
   }
 
-  if (item instanceof SlopText) {
+  if (SlopType.isNum(item) || SlopType.isBool(item)) {
+    return item;
+  }
+
+  if (SlopType.isString(item)) {
     return `"${item}"`;
   }
 
-  if (isObj(item)) {
+  if (SlopType.isSymbol(item) || SlopType.isKey(item)) {
+    return item;
+  }
+
+  if (SlopType.isDict(item)) {
     return `{ ${Object.entries(item)
       .map((x) => {
         return `${x[0]} : ${prettyPrint(x[1])}`;
-      })
-      .join(", ")} }`;
+      }).join(", ")} }`;
   }
 
   if (item instanceof Function)
     return `{ Function : ${item.funcName || "anon"} }`;
 
   if (Array.isArray(item)) return `[ ${item.map(prettyPrint).join(", ")} ]`;
-
-
-
-
-  if (typeof item === "string") return `"${item}"`;
 
   if (item._customFormat) return item._customFormat();
 

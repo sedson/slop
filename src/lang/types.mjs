@@ -1,123 +1,221 @@
 /**
- * Built-in runtime data types.
+ * Runtime data types. Use JS Symbols for (ostensibly) faster comparison than 
+ * strings and more clear semantics than numbers.
  */
-export const SlopType = {
+export const SlopTypeEnum = Object.freeze({
   NIL: Symbol("NIL"),
   NUM: Symbol("NUM"),
   STR: Symbol("STR"),
   KEY: Symbol("KEY"),
   SYMBOL: Symbol("SYMBOL"),
+  BOOL: Symbol("BOOL"),
   LIST: Symbol("LIST"),
-  DICT: Symbol("DICT"),
   VEC: Symbol("VEC"),
+  DICT: Symbol("DICT"),
   FUNC: Symbol("FUNC"),
   UNKNOWN: Symbol("UNKNOWN"),
-};
+});
 
-const _symbolToString = new Map(
-  Object.entries(SlopType).map(([k, v]) => [v, k])
-);
+const sybmolToString = new Map(Object.entries(SlopTypeEnum).map(([k, v]) => [v, k]));
 
-SlopType.getString = function (symbol) {
-  return _symbolToString.get(symbol);
-};
+const atomicTypes = [
+  SlopTypeEnum.NIL,
+  SlopTypeEnum.NUM,
+  SlopTypeEnum.STR,
+  SlopTypeEnum.KEY,
+  SlopTypeEnum.SYMBOL,
+  SlopTypeEnum.BOOL,
+];
 
-SlopType.valid = function (symbol) {
-  return _symbolToString.has(symbol);
-};
 
-Object.freeze(SlopType);
+function error(message) {
+  throw new Error(`type error - ${message}`);
+}
+
+// Classes to use for type checking otherwise indistinguishable types from JS's 
+// perspective.
+export class SlopText extends String {}
+export class SlopSymbol extends SlopText {}
+export class SlopString extends SlopText {}
+export class SlopKey extends SlopText {}
+export class SlopVec extends Array {}
+
 
 /**
- * Constructs homoiconic shared types from plain Js types.
- */
-export const SlopVal = {
-  nil() {
-    return undefined;
-  },
+ * SlopType name space has methods for 
+ */ 
+export class SlopType {
+  /**
+   * Get the string label for a SlopType.
+   * @param {Symbol} symbol A JS symbol.
+   * @return {string} Human readable string name of type.
+   */
+  static getString(symbol) {
+    return sybmolToString.has(symbol) ?
+      sybmolToString.get(symbol) :
+      sybmolToString.get(SlopType.UNKNOWN);
+  }
 
-  bool(b) {
+  static enum = SlopTypeEnum;
+
+  /**
+   * Check if a symbol is a valid SlopType.
+   * @param {Symbol}
+   * @return {boolean}
+   */
+  static valid(symbol) {
+    return sybmolToString.has(symbol);
+  }
+
+  /**
+   * Get the Slop Type of Some value.
+   * @param {any} val
+   * @return {SlopType}
+   */
+  static getType(val) {
+    if (SlopType.isNil(val)) return SlopTypeEnum.NIL;
+    if (SlopType.isNum(val)) return SlopTypeEnum.NUM;
+    if (SlopType.isString(val)) return SlopTypeEnum.STR;
+    if (SlopType.isKey(val)) return SlopTypeEnum.KEY;
+    if (SlopType.isSymbol(val)) return SlopTypeEnum.SYMBOL;
+    if (SlopType.isBool(val)) return SlopTypeEnum.BOOL;
+    if (SlopType.isList(val)) return SlopTypeEnum.LIST;
+    if (SlopType.isVec(val)) return SlopTypeEnum.VEC;
+    if (SlopType.isDict(val)) return SlopTypeEnum.DICT;
+    if (SlopType.isFn(val)) return SlopTypeEnum.FUNC;
+    return SlopTypeEnum.UNKNOWN;
+  }
+
+  static isNil(val) {
+    return val === undefined;
+  }
+
+  static isBool(val) {
+    return typeof val === "boolean";
+  }
+
+  static isFalse(val) {
+    return val === false;
+  }
+
+  static isSymbol(val) {
+    return val?.constructor === SlopSymbol;
+  }
+
+  static isString(val) {
+    return (
+      val?.constructor === SlopString ||
+      (typeof val === "string" && 
+        !(SlopType.isKey(val) || SlopType.isSymbol(val)))
+    );
+  }
+
+  static isKey(val) {
+    return val?.constructor === SlopKey;
+  }
+
+  static isNum(val) {
+    return typeof val === "number";
+  }
+
+  static isVec(val) {
+    return val?.constructor === SlopVec;
+  }
+
+  static isList(val) {
+    return Array.isArray(val) && !SlopType.isVec(val);
+  }
+
+  static isDict(val) {
+    return val?.constructor === Object;
+  }
+
+  static isListLike(val) {
+    return SlopType.isVec(val) || SlopType.isList(val);
+  }
+
+  static isFn(val) {
+    return typeof val ==="function";
+  }
+
+  static isAtom (val) {
+    return atomicTypes.includes(SlopType.getType(val));
+  }
+
+  static isTruthy (val) {
+    return (!(SlopType.isNil(val) || SlopType.isFalse(val)));
+  }
+
+  static nil() {
+    return undefined;
+  }
+
+  static bool(b) {
     if (typeof b !== "boolean") {
-      throw new Error("Expected boolean to construct boolean");
+      error("expected boolean to construct boolean");
     }
     return b;
-  },
+  }
 
-  symbol(s, subpath = undefined) {
+  static symbol(s) {
     if (typeof s !== "string") {
-      throw new Error("Expected string to construct symbol");
+      error("expected string to construct symbol");
     }
-    return new SlopSymbol(s, subpath);
-  },
+    return new SlopSymbol(s);
+  }
 
-  string(s) {
+  static string(s) {
     if (typeof s !== "string") {
-      throw new Error("Expected string to construct string literal");
+      error("expected string to construct string literal");
     }
     return new SlopString(s);
-  },
+  }
 
-  key(s) {
+  static key(s) {
     if (typeof s !== "string") {
-      throw new Error("Expected string to construct key");
+      error("expected string to construct key");
     }
     return new SlopKey(s);
-  },
+  }
 
-  num(n) {
+  static num(n) {
     if (typeof n !== "number") {
-      throw new Error("Expected number to construct number");
+      error("expected number to construct number");
     }
     return n;
-  },
+  }
 
-  list(xs) {
+  static list(xs) {
     if (!Array.isArray(xs)) {
-      throw new Error("Expected array to construct list");
+      error("expected array to construct list");
     }
     return xs;
-  },
+  }
 
-  vec(xs) {
+  static vec(xs) {
     if (!Array.isArray(xs)) {
-      throw new Error("Expected array to construct vector");
+      error("expected array to construct vector");
     }
     return SlopVec.from(xs);
-  },
+  }
 
-
-  dict(map) {
+  static dict(map) {
     if (map == null || map?.constructor !== Object) {
-      throw new Error("Expexted plain JS object to construct dict");
+      error("expected plain JS object to construct dict");
     }
     return map;
-  },
+  }
 
-  fn(fn, name = undefined) {
+  static fn(fn, name = undefined) {
     if (typeof fn !== "function") {
-      throw new Error("Expected function to construct function");
+      error("Expected function to construct function");
     }
     if (name) {
       fn.funcName = name;
     }
     return fn;
-  },
-};
-
-Object.freeze(SlopVal);
-
-/**
- * SLOP bool APIs
- */
-export const SlopBool = {
-  isTrue(b) {
-    return !!b;
-  },
-
-  isFalse(b) {
-    return !SlopBool.isTrue(b);
-  },
-};
+  }
+}
 
 /**
  * SLOP list APIs
@@ -152,13 +250,13 @@ export const SlopList = {
     l.forEach(fn);
   },
 
-  *iter(l) {
+  * iter(l) {
     for (let i = 0; i < SlopList.len(l); i++) {
       yield SlopList.at(l, i);
     }
   },
 
-  reduce(l, fn, init = SlopVal.nil()) {
+  reduce(l, fn, init = SlopType.nil()) {
     return l.reduce(fn, init);
   },
 
@@ -180,7 +278,7 @@ export const SlopDict = {
   },
 
   entries(dict) {
-    return SlopVal.list(Object.entries(dict));
+    return SlopType.list(Object.entries(dict));
   },
 
   mapVals(dict, fn) {
@@ -193,7 +291,7 @@ export const SlopDict = {
       const [newKey, newVal] = fn(entry);
       newDict[newKey] = newVal;
     }
-    return SlopVal.dict(newDict);
+    return SlopType.dict(newDict);
   },
 };
 
@@ -205,70 +303,3 @@ export const SlopFn = {
     return fn(...args);
   },
 };
-
-/**
- * Predicates for getting types of SLOP values
- */
-export const SlopPred = {
-  isNil: (val) => val === undefined,
-
-  isBool: (val) => typeof val === "boolean",
-
-  isSymbol: (val) => val?.constructor?.name === "SlopSymbol",
-
-  isString: (val) => val?.constructor?.name === "SlopString",
-
-  isKey: (val) => val?.constructor?.name === "SlopKey",
-
-  isNum: (val) => typeof val === "number",
-
-  isVec: (val) => val?.constructor?.name === 'SlopVec',
-
-  isList: (val) => Array.isArray(val) && !SlopPred.isVec(val),
-
-  isDict: (val) => val?.constructor === Object,
-
-  isListLike: (val) => SlopPred.isVec(val) || SlopPred.isList(val),
-
-  isFn: (val) => typeof val === "function",
-};
-
-export function isAtom(val) {
-  return [
-    SlopPred.isNil,
-    SlopPred.isBool,
-    SlopPred.isSymbol,
-    SlopPred.isString,
-    SlopPred.isKey,
-    SlopPred.isNum,
-  ].some((p) => p(val));
-}
-
-Object.freeze(SlopPred);
-
-export function getType(val) {
-  
-}
-
-export class SlopText extends String {}
-
-class SlopSymbol extends SlopText {
-  constructor(val, subpath = undefined) {
-    super(val);
-    this.subpath = subpath;
-  }
-}
-
-class SlopString extends SlopText {
-  constructor(val) {
-    super(val);
-  }
-}
-
-class SlopKey extends SlopText {
-  constructor(val) {
-    super(val);
-  }
-}
-
-class SlopVec extends Array {}

@@ -6,6 +6,9 @@ function error(message) {
   throw new Error(`context - ${message}`);
 }
 
+const VARIADIC = "&";
+const DELIM = ".";
+
 export class Context {
   /**
    * Create a context.
@@ -15,8 +18,9 @@ export class Context {
     this.env = Object.setPrototypeOf({}, scope);
     this._constants = new Set();
     for (let i = 0; i < params.length; i++) {
-      if (params[i] === "&" && params.length === i + 2) {
+      if (params[i] == VARIADIC && params.length > i) {
         this.env[params[i + 1]] = args.slice(i);
+        console.log('VARIADIC', this.env)
         return;
       }
       this.env[params[i]] = args[i];
@@ -25,11 +29,12 @@ export class Context {
 
   /**
    * Get the value of id in the context.
-   * @param {string} id The identifier to get.
+   * @param {string} key The identifier to get.
    * @param {string[]} subpath Nested subpath.
    * @return {any}
    */
-  get(id, subpath = undefined) {
+  get(key) {
+    const [id, subpath] = parseKey(key);
     if (!(id in this.env)) {
       error("no value found for key: " + id);
       return;
@@ -125,4 +130,10 @@ function setNested(obj, path, value) {
   }
   current[path[path.length - 1]] = value;
   return obj;
+}
+
+
+function parseKey(key) {
+  const split = key.split(DELIM);
+  return [split.shift(), split];
 }

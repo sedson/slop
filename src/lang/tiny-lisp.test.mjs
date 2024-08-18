@@ -40,6 +40,7 @@ Test("Lambdas", (assert) => {
   assert.equal(test(src), 10, "Immediately invoked identity lambda");
 });
 
+
 Test("Define", (assert) => {
   let src;
 
@@ -155,61 +156,30 @@ Test("Funcs as params", (assert) => {
   assert.equal(test(src, context), "hey there", "Function as param");
 });
 
+
 Test("Types", (assert) => {
   const context = {
     "+": (a, b) => a + b,
   };
 
-  function wrapTestWithSymbolCheck(output, expected, message) {
-    const o = lang.SlopType.getString(output);
-    const e = lang.SlopType.getString(expected);
-    assert.equal(o, e, message);
+  function typeCheck(output, type, message) {
+    assert.equal(output, lang.SlopType.enum[type], message);
   }
 
-  wrapTestWithSymbolCheck(test("(type nil)"), lang.SlopType.NIL, "nil");
-  wrapTestWithSymbolCheck(test("(type 1)"), lang.SlopType.NUM, "num");
-  wrapTestWithSymbolCheck(test('(type "h")'), lang.SlopType.STR, "str");
-  wrapTestWithSymbolCheck(
-    test("(type (+ 1 2))", context),
-    lang.SlopType.NUM,
-    "function -> num"
-  );
-  wrapTestWithSymbolCheck(
-    test("(type {:a 1})"),
-    lang.SlopType.DICT,
-    "dict literal"
-  );
-  wrapTestWithSymbolCheck(
-    test("(type {})"),
-    lang.SlopType.DICT,
-    "dict literal empty"
-  );
-  wrapTestWithSymbolCheck(
-    test("(type ())"),
-    lang.SlopType.NIL,
-    "empty tuple -> nil"
-  );
-  wrapTestWithSymbolCheck(
-    test("(type (list))"),
-    lang.SlopType.LIST,
-    "empty vec"
-  );
-  wrapTestWithSymbolCheck(
-    test("(type (list 1 2 3))"),
-    lang.SlopType.LIST,
-    "list literal"
-  );
-  wrapTestWithSymbolCheck(test("(type :a)"), lang.SlopType.KEY, "key");
-  wrapTestWithSymbolCheck(
-    test("(type :a-b)"),
-    lang.SlopType.KEY,
-    "key with dash"
-  );
-  wrapTestWithSymbolCheck(
-    test("(type (fn (x) x))"),
-    lang.SlopType.FUNC,
-    "lambda"
-  );
+  typeCheck(test("(type nil)"), "NIL", "nil -> nil");
+  typeCheck(test("(type ())"), "NIL", "() -> nil");
+  typeCheck(test("(type 1)"), "NUM", "num");
+  typeCheck(test('(type "h")'), "STR", "str");
+  typeCheck(test("(type (+ 1 2))", context), "NUM", "function -> num");
+  typeCheck(test("(type {:a 1})"), "DICT", "dict literal");
+  typeCheck(test("(type {})"), "DICT", "dict literal empty");
+  typeCheck(test("(type (list))"), "LIST", "empty list with (list)");
+  typeCheck(test("(type (list 1 2 3))"), "LIST", "list literal");
+  typeCheck(test("(type :a)"), "KEY", "key");
+  typeCheck(test("(type :a-b)"),"KEY","key with dash");
+  typeCheck(test("(type (fn (x) x))"), "FUNC", "lambda");
+  typeCheck(test("(type [])"), "VEC", "empty vec");
+  typeCheck(test("(type [1])"), "VEC", "vec literal");
 });
 
 Test("toJS string-based compile", (assert) => {
