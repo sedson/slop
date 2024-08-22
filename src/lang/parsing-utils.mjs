@@ -57,4 +57,9 @@ export const is = {
   word: (char) => !is.whitespace(char) &&
     !is.leftDelim(char) &&
     !is.rightDelim(char),
+  special: (char) => is.singlequote(char) || 
+    is.tilde(char) || 
+    is.at(char) || 
+    is.comma(char) || 
+    is.semicolon(char),
 };

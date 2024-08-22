@@ -1,8 +1,28 @@
 import { TokenType } from "./token.mjs";
-import { SlopList, SlopType } from "./types.mjs";
+import { SlopType } from "./types.mjs";
 import { Reader } from "./parsing-utils.mjs";
-import { prettyPrint } from "./pretty-print.mjs";
-import { read } from "./index.mjs";
+
+
+// Define our parse time macros.
+// TODO : define these somewhere more shared?
+export const ParseMacros = {
+  "\'": (form) => {
+    return SlopType.list([SlopType.symbol("quote"), form]);
+  },
+  "~": (form) => {
+    return SlopType.list([SlopType.symbol("quasi"), form]);
+  },
+   ",@": (form) => {
+    return SlopType.list([SlopType.symbol("splice-unquote"), form]);
+  },
+  ",": (form) => {
+    return SlopType.list([SlopType.symbol("unquote"), form]);
+  },
+  "@" : (form) => {
+    return SlopType.list([SlopType.symbol("splice"), form]);
+  }
+ 
+}
 
 function error(message, token) {
   const location = token ? ` [ line ${token.line}, col ${token.col} ]` : "";
@@ -53,6 +73,12 @@ function expression(reader) {
       return SlopType.dict({});
     }
     return dict(reader);
+  }
+
+  if (match(reader, TokenType.SPECIAL)) {
+    if (ParseMacros[reader.prev().val]) {
+      return ParseMacros[reader.prev().val](expression(reader));
+    }
   }
 
   return atom(reader);

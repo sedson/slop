@@ -18,6 +18,8 @@ export function prettyPrint(item) {
     return "uncaught null";
   }
 
+  if (item._customFormat) return item._customFormat();
+
   if (TokenType.valid(item)) {
     return TokenType.getString(item);
   }
@@ -35,7 +37,7 @@ export function prettyPrint(item) {
   }
 
   if (SlopType.isSymbol(item) || SlopType.isKey(item)) {
-    return item;
+    return `${item}`;
   }
 
   if (SlopType.isDict(item)) {
@@ -45,12 +47,20 @@ export function prettyPrint(item) {
       }).join(", ")} }`;
   }
 
-  if (item instanceof Function)
-    return `{ Function : ${item.funcName || "anon"} }`;
+  if (item instanceof Function) {
+    if (SlopType.isMacro(item)) {
+      return `<macro ${item.funcName || "anon"}>`;
+    }
+    return `<function ${item.funcName || "anon"}>`;
+  }
+ 
+  if (SlopType.isVec(item)) {
+    return `[${item.map(prettyPrint).join(" ")}]`;
+  }
 
-  if (Array.isArray(item)) return `[ ${item.map(prettyPrint).join(", ")} ]`;
-
-  if (item._customFormat) return item._customFormat();
+  if (Array.isArray(item)) {
+    return `(${item.map(prettyPrint).join(" ")})`;
+  }
 
   return JSON.stringify(item);
 }

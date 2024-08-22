@@ -1,5 +1,3 @@
-import { lib } from "./index.mjs";
-
 const lang = await import("./index.mjs");
 const toJS = await import("./extensions/to-js.mjs");
 const { Test } = await import("./test.mjs");

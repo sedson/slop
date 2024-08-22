@@ -13,6 +13,7 @@ export const TokenType = {
   STR: Symbol("STR"),
   KEY: Symbol("KEY"),
   SYMBOL: Symbol("SYMBOL"),
+  SPECIAL: Symbol("SPECIAL"),
   EOF: Symbol("EOF"),
 };
 
@@ -30,7 +31,7 @@ TokenType.valid = function (symbol) {
 
 Object.freeze(TokenType);
 
-class Token {
+export class Token {
   constructor(type, val, str, range, line, col) {
     this.type = type;
     this.val = val;
@@ -38,13 +39,6 @@ class Token {
     this.range = range;
     this.line = line;
     this.col = col;
-  }
-}
-
-export class SymbolToken extends Token {
-  constructor(val, str, range, line, col, subpath = undefined) {
-    super(TokenType.SYMBOL, val, str, range, line, col);
-    this.subpath = subpath;
   }
 }
 

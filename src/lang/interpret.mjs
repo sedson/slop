@@ -11,6 +11,7 @@ import {
 import { prettyPrint, SpecialWords, extensions } from "./index.mjs";
 import { Context } from "./context.mjs";
 
+
 function error(message) {
   throw new Error(`interpret - ${message}`);
 }
@@ -57,16 +58,34 @@ function setWithDestructure(elements, context, isDef) {
 
 /**
  * Create a lambda.
- * @param {array} elements The first elements is the list of formal param 
+ * @param {array} expr The first elements is the list of formal param 
  *     symbols. The remaining elements are the body of the function.
  * @param {Context} context The parent context/scope
  * @param {boolean} The name of the functions (only if not anon) for pretty 
  *     printing.
  * @return {function}
  */
-function lambda(elements, context, name = undefined) {
-  const [params, body] = SlopList.decap(elements);
+function lambda(expr, context, name = undefined) {
+  const [params, body] = SlopList.decap(expr);
   return SlopType.fn((...args) => {
+    const localContext = new Context(context.env, params ?? [], args);
+    return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
+  }, name);
+}
+
+
+/**
+ * Create a macro.
+ * @param {array} expr The first elements is the list of formal param 
+ *     symbols. The remaining elements are the body of the function.
+ * @param {Context} context The parent context/scope
+ * @param {boolean} The name of the functions (only if not anon) for pretty 
+ *     printing.
+ * @return {function}
+ */
+function macro (expr, context, name = undefined) {
+  const [params, body] = SlopList.decap(expr);
+  return SlopType.macro((...args) => {
     const localContext = new Context(context.env, params ?? [], args);
     return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
   }, name);
@@ -103,8 +122,14 @@ export const Core = {
     return Core.def([name, func], context, true);
   },
 
-  list: (expr, context) => {
-    return SlopType.list(expr.map(e => interpret(e, context)));
+  macro: (expr, context) => {
+    return macro(expr, context);
+  },
+
+  defmacro: (expr, context) => {
+    const [name, rest] = SlopList.decap(expr);
+    const mac = macro(rest, context, name);
+    return Core.def([name, mac], context, true);
   },
 
   let: (expr, context) => {
@@ -116,6 +141,15 @@ export const Core = {
     });
 
     return SlopList.reduce(body, (_, expr) => interpret(expr, localContext));
+  },
+
+  do: (expr, context) => {
+    const localContext = new Context(context.env);
+    return SlopList.reduce(expr, (_, expr) => interpret(expr, localContext));
+  },
+
+  upscope: (expr, context) => {
+    return SlopList.reduce(expr, (_, expr) => interpret(expr, context));
   },
 
   for: (expr, context) => {
@@ -150,13 +184,6 @@ export const Core = {
     }
   },
 
-  type: (expr, context) => {
-    if (expr.length > 1) {
-      error("can only type one form");
-    }
-    return SlopType.getType(interpret(expr[0], context));
-  },
-
   cond: (expr, context) => {
     for (let arm of SlopList.iter(expr)) {
       const [condition, then] = arm;
@@ -166,31 +193,88 @@ export const Core = {
     }
   },
 
-  quote: (expr, context) => {
+  type: (expr, context) => {
     if (expr.length > 1) {
-      error('can only quote one form');
+      error("can only type one form");
     }
-    return expr[0];
+    return SlopType.getType(interpret(expr[0], context));
   },
 
   symbol: (expr, context) => {
-    if (expr.length > 1) {
-      error('can only symbol one form');
+    if (SlopType.isListLike(expr) && expr.length > 1) {
+      error("can only symbol one form");
     }
     return SlopType.symbol(interpret(expr[0], context));
+  },
+
+  list: (expr, context) => {
+    return SlopType.list(expr.map(e => interpret(e, context)));
+  },
+
+  vec: (expr, context) => {
+    return SlopType.vec(expr.map(e => interpret(e, context)));
   },
 
   eval: (expr, context) => {
     return interpret(interpret(expr[0], context), context);
   },
 
-  do: (expr, context) => {
-    const localContext = new Context(context.env);
-     return SlopList.reduce(expr, (_, expr) => interpret(expr, localContext));
+  quote: (expr, context) => {
+    if (SlopType.isListLike(expr) && expr.length > 1) {
+      error("can only quote one form");
+    }
+    return expr[0];
   },
 
-  upscope: (expr, context) => {
-    return SlopList.reduce(expr, (_, expr) => interpret(expr, context));
+  splice: (expr, context) => {
+    if (SlopType.isListLike(expr) && expr.length > 1) {
+      error("can only splice one form");
+    };
+    const interpreted = interpret(expr[0], context);
+    return SlopType.splice(interpreted);
+  },
+
+  quasi: (expr, context, top = true) => {
+    if (top) {
+      if (expr.length > 1) {
+        error("can only quasi one form");
+      }
+      return Core.quasi(expr[0], context, false);
+    }
+
+    if (SlopType.isAtom(expr) || SlopType.isFn(expr)) {
+      return expr;
+    }
+    
+    if (SlopType.isListLike(expr)) {
+      const [first, rest] = SlopList.decap(expr);
+      
+      if (first == "unquote") {
+        return interpret(rest[0], context);
+      }
+
+      if (first == "splice-unquote") {
+        const evaluated = interpret(rest[0], context);
+        if (!SlopType.isListLike(evaluated)) {
+          error("cannot splice non-list value");
+        }
+        return SlopType.splice(evaluated);
+      }
+
+      return SlopList.map(expr, (expr) => Core.quasi(expr, context, false));
+    }
+
+    if (SlopType.isDict(expr)) {
+      return SlopDict.mapVals(expr, (expr) => Core.quasi(expr, context, false));
+    }
+  },
+
+  unquote: (expr, context, ) => {
+    error("unquote only valid inside quasiquote")
+  },
+
+  "splice-unquote" : (expr, context) => {
+    error("splice-unquote only valid inside quasiquote")
   }
 };
 
@@ -206,7 +290,7 @@ export function interpret(expression, context) {
   
   const interpInCtx = (expr) => interpret(expr, context);
 
-  if (SlopType.isFn(expression)) {
+  if (SlopType.isFn(expression) || SlopType.isMacro(expression)) {
     return expression;
   }
 
@@ -216,7 +300,7 @@ export function interpret(expression, context) {
       return SpecialWords[expression];
     }
     
-    return context.get(expression, expression.subpath);
+    return context.get(expression);
   }
 
   if (SlopType.isAtom(expression)) return expression;
@@ -226,6 +310,7 @@ export function interpret(expression, context) {
   }
 
   if (SlopType.isVec(expression)) {
+    console.log('interpVec', (expression));
     return SlopList.map(expression, interpInCtx);
   }
 
@@ -248,6 +333,16 @@ export function interpret(expression, context) {
   if (first in extensions) {
     return extensions[first](rest, context);
   }
+
+  if (SlopType.isMacro(first)) {
+    const expanded = SlopFn.apply(first, rest);
+    return interpret(expanded, context);
+  }
+
+  if (SlopType.isSymbol(first) && SlopType.isMacro(context.get(first))) {
+    const expanded = SlopFn.apply(context.get(first), rest);
+    return interpret(expanded, context);
+  }
   
   // Interpret each element of the list.
   const evaledExprs = expression.map(interpInCtx);
@@ -265,5 +360,5 @@ export function interpret(expression, context) {
     }
   }
 
-  error("first elem not a function: " + evaledExprs[0]);
+  error("first elem not a function: " + prettyPrint(expression));
 }

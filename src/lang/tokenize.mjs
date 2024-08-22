@@ -1,4 +1,4 @@
-import { TokenType, token, SymbolToken } from "./token.mjs";
+import { TokenType, token, Token } from "./token.mjs";
 import { is, Reader } from "./parsing-utils.mjs";
 
 /**
@@ -114,14 +114,14 @@ export function tokenize(input) {
       continue;
     }
 
-    // if (is.singlequote(char)) {
-    //   while (is.word(peek()) && !reader.done()) {
-    //     next();
-    //   }
-    //   push(TokenType.STR, grab().slice(1), grab());
-    //   continue;
-    // }
-
+    if (is.special(char)) {
+      while (is.special(peek())) {
+        next();
+      }
+      push(TokenType.SPECIAL, grab(), grab());
+      continue;
+    }
+    
     if (is.colon(char)) {
       while (is.word(peek()) && !reader.done()) {
         next();

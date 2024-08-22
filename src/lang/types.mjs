@@ -13,6 +13,7 @@ export const SlopTypeEnum = Object.freeze({
   VEC: Symbol("VEC"),
   DICT: Symbol("DICT"),
   FUNC: Symbol("FUNC"),
+  MACRO: Symbol("MACRO"),
   UNKNOWN: Symbol("UNKNOWN"),
 });
 
@@ -38,7 +39,9 @@ export class SlopText extends String {}
 export class SlopSymbol extends SlopText {}
 export class SlopString extends SlopText {}
 export class SlopKey extends SlopText {}
+
 export class SlopVec extends Array {}
+export class SlopSplice extends Array {}
 
 
 /**
@@ -135,7 +138,11 @@ export class SlopType {
   }
 
   static isFn(val) {
-    return typeof val ==="function";
+    return typeof val ==="function" && !val.isMacro;
+  }
+
+  static isMacro(val) {
+    return typeof val ==="function" && val.isMacro;
   }
 
   static isAtom (val) {
@@ -158,8 +165,9 @@ export class SlopType {
   }
 
   static symbol(s) {
-    if (typeof s !== "string") {
-      error("expected string to construct symbol");
+    if (!s instanceof String) {
+      console.log(s);
+      error("expected string to construct symbol " + s);
     }
     return new SlopSymbol(s);
   }
@@ -189,14 +197,21 @@ export class SlopType {
     if (!Array.isArray(xs)) {
       error("expected array to construct list");
     }
-    return xs;
+    return SlopList.flatten(xs);
   }
 
   static vec(xs) {
     if (!Array.isArray(xs)) {
       error("expected array to construct vector");
     }
-    return SlopVec.from(xs);
+    return SlopVec.from(SlopList.flatten(xs));
+  }
+
+  static splice(xs) {
+    if (!Array.isArray(xs)) {
+      error("expected array to construct splice");
+    }
+    return SlopSplice.from(SlopList.flatten(xs));
   }
 
   static dict(map) {
@@ -208,11 +223,22 @@ export class SlopType {
 
   static fn(fn, name = undefined) {
     if (typeof fn !== "function") {
-      error("Expected function to construct function");
+      error("expected function to construct function");
     }
     if (name) {
       fn.funcName = name;
     }
+    return fn;
+  }
+
+  static macro(fn, name = undefined) {
+    if(typeof fn !== "function") {
+      error("expected function to construct macro");
+    }
+    if (name) {
+      fn.funcName = name;
+    }
+    fn.isMacro = true;
     return fn;
   }
 }
@@ -243,7 +269,10 @@ export const SlopList = {
   },
 
   map(l, fn) {
-    return l.map(fn);
+    if (l instanceof SlopVec) {
+      return SlopType.vec(l.map(fn));
+    }
+    return SlopType.list(l.map(fn));
   },
 
   forEach(l, fn) {
@@ -267,6 +296,14 @@ export const SlopList = {
   len(l) {
     return l.length;
   },
+
+  flatten(l) {
+    const m = [];
+    for (let e of l) {
+      e instanceof SlopSplice ? m.push(...e) : m.push(e);
+    }
+    return m;
+  }
 };
 
 /**
