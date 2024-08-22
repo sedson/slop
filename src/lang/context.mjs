@@ -7,7 +7,7 @@ function error(message) {
 }
 
 const VARIADIC = "&";
-const DELIM = ".";
+const DELIM = /\/|\./;
 
 export class Context {
   /**
@@ -36,7 +36,7 @@ export class Context {
   get(key) {
     const [id, subpath] = parseKey(key);
     if (!(id in this.env)) {
-      error("no value found for key: " + id);
+      error("no value found for key: " + key);
       return;
     }
 
@@ -65,7 +65,8 @@ export class Context {
    * @param {string[]} subpath Nested subpath.
    * @return {any} The value that was set.
    */
-  set(id, val, constant = false, subpath = undefined) {
+  set(key, val, constant = false) {
+    const [id, subpath] = parseKey(key);
     if (this._constants.has(id)) {
       if (!constant) {
         error(`attempted set to constant binding: ${id}`);
@@ -134,6 +135,9 @@ function setNested(obj, path, value) {
 
 
 function parseKey(key) {
+  if (key[0].match(DELIM)) {
+    return [key];
+  }
   const split = key.split(DELIM);
   return [split.shift(), split];
 }
