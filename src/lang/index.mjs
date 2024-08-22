@@ -19,6 +19,11 @@ export const SpecialWords = {
 };
 
 export const lib = { ...utils, ...math, ...lists, ...prng };
+for (const [key, val] of Object.entries(lib)) {
+  if (val instanceof Function) {
+    val.funcName = key;
+  }
+}
 
 export {
   TokenType,

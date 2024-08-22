@@ -47,6 +47,10 @@ export const utils = {
   },
   'key': (a) => ':' + a,
   'console/log': (...args) => console.log(...args),
+
+  'str': {
+    'split': (a, b) => a.split(b ?? "")
+  },
 };
 
 
@@ -98,9 +102,10 @@ export const lists = {
     let list = [];
     for (let i = a; i < b; i++) {
       list.push(i);
-    }0
+    }
     return list;
   },
+  '..': (a, b) => lists['range'](a, b),
   'map': (ls, fn) => ls.map(x => fn(x)),
   'for-each': (ls, fn) => ls.forEach(x => fn(x)),
   'filter': (ls, fn) => ls.filter(x => fn(x)),

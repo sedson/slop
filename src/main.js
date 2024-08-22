@@ -1,4 +1,4 @@
-import * as lisp from "./lang/index.mjs";
+import * as slop from "./lang/index.mjs";
 import * as themes from "./themes.js";
 import { Canvas } from "./canvas.js";
 import { CodeEditor } from "./components/code-editor/code-editor.js";
@@ -6,20 +6,24 @@ import { CodeEditor } from "./components/code-editor/code-editor.js";
 // Import the the to-js compiler extensions.
 import "./lang/extensions/to-js.mjs";
 
-const THEME = themes.xcodeDark;
+const THEME = themes.dark;
 
 const imagesBySource = (window.imagesBySource = {});
 const files = (window.files = []);
 
+if (window) {
+  window.slop = slop;
+}
+
 function ctx(editor = null, viewport = null) {
   // Add lisp to the scope.
-  const scope = Object.assign({}, lisp.lib);
+  const scope = Object.assign({}, slop.lib);
 
   if (editor) {
     // Add lisp to the scope.
     Object.assign(scope, {
       print: (...items) => {
-        items.forEach((item) => editor.print(lisp.prettyPrint(item)));
+        items.forEach((item) => editor.print(slop.prettyPrint(item)));
         return items[items.length - 1];
       },
     });
@@ -95,15 +99,15 @@ function ctx(editor = null, viewport = null) {
       "#JS": (str) => eval(str),
     });
 
-    return new lisp.Context(scope);
+    return new slop.Context(scope);
   }
 }
 
-const globals = new Set(lisp.keywords);
-for (let word of Object.keys(lisp.lib)) {
+const globals = new Set(slop.keywords);
+for (let word of Object.keys(slop.lib)) {
   globals.add(word);
 }
-for (let word of Object.keys(lisp.extensions)) {
+for (let word of Object.keys(slop.extensions)) {
   globals.add(word);
 }
 
@@ -122,7 +126,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const src = editor.text;
     const env = ctx(editor, viewport);
-    const { ok, tree, result, error, tokens } = lisp.run(src, env);
+    const { ok, tree, result, error, tokens } = slop.run(src, env);
 
     // console.log(JSON.stringify(tree, (key, val) => {
     //   if (key === 'type') return lisp.Type.getString(val);
@@ -132,7 +136,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (ok) {
       viewport.draw();
-      if (useLog) editor.print(lisp.prettyPrint(result));
+      if (useLog) editor.print(slop.prettyPrint(result));
     } else {
       editor.error(error);
       console.error(error);
@@ -141,7 +145,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
 
   editor.setSyntax({
-    tokenize: lisp.tokenize,
+    tokenize: slop.tokenize,
     keywords: globals,
     comment: "#",
     tabSize: 2,
@@ -218,7 +222,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (e.metaKey) {
       const [token, index] = editor.tokenAt(editor.caretPosition);
 
-      if (token.type === lisp.TokenType.NUM) {
+      if (token.type === slop.TokenType.NUM) {
         const n = Date.now();
         const update = n - lastChange > threshTime;
         if (update) {
