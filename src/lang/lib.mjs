@@ -1,6 +1,7 @@
 /**
  * @file Provide basic library functions for the tiny lisp.
  */ 
+import { SlopType } from "./types.mjs";
 
 const A = 16807;
 const MOD = (2 ** 32) - 1;
@@ -18,6 +19,25 @@ export const prng = {
   'seed': (num) => prng._prng = PRNG(num),
   'rand': () => prng._prng(),
 };
+
+const CHARS = 'abcdefghijfklmnopqrstuvwxyzABCDEFGHIJFKLMNOPQRSTUVWXYZ0123456789_@!';
+const buffer = new Uint8Array(128);
+let index = buffer.byteLength;
+
+function fillBuffer () {
+  crypto.getRandomValues(buffer);
+  index = 0;
+}
+
+function uuid (length = 6) {
+  if (index + length >= buffer.byteLength) fillBuffer();
+  let id = '';
+  while(id.length < length) {
+    id += CHARS[buffer[index] % CHARS.length];
+    ++ index;
+  }
+  return id;
+}
 
 
 export const utils = {
@@ -51,6 +71,7 @@ export const utils = {
   'str': {
     'split': (a, b) => a.split(b ?? "")
   },
+  gensym: () => SlopType.symbol(uuid(6)),
 };
 
 
@@ -106,8 +127,8 @@ export const lists = {
     return list;
   },
   '..': (a, b) => lists['range'](a, b),
-  'map': (ls, fn) => ls.map(x => fn(x)),
-  'for-each': (ls, fn) => ls.forEach(x => fn(x)),
+  'map': (ls, fn) => ls.map((x, i) => fn(x, i)),
+  'for-each': (ls, fn) => ls.forEach((x, i) => fn(x, i)),
   'filter': (ls, fn) => ls.filter(x => fn(x)),
   'list-join': (ls, delim = " ") => ls.join(delim),
   'fold': (ls, fn, init) => ls.reduce(fn, init),

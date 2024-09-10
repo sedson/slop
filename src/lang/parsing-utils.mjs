@@ -20,7 +20,7 @@ export class Reader {
   prev() { return this.data[Math.max(this.loc - 1, 0)]; }
 
   /** 
-   * @param {number} start
+   * @param {number} start 
    * @param {number} end 
    */
   grab(start, end) { return this.data.slice(start, end); }

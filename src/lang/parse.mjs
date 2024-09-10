@@ -5,24 +5,34 @@ import { Reader } from "./parsing-utils.mjs";
 
 // Define our parse time macros.
 // TODO : define these somewhere more shared?
+const quote = SlopType.symbol("quote");
+const quasi = SlopType.symbol("quasi");
+const unquote = SlopType.symbol("unquote");
+const splice = SlopType.symbol("splice");
+const spliceUnquote = SlopType.symbol("splice-unquote");
+const quoteUnquote = SlopType.symbol("quote-unquote");
+
 export const ParseMacros = {
   "\'": (form) => {
-    return SlopType.list([SlopType.symbol("quote"), form]);
+    return SlopType.list([quote, form]);
   },
   "~": (form) => {
-    return SlopType.list([SlopType.symbol("quasi"), form]);
+    return SlopType.list([quasi, form]);
   },
    ",@": (form) => {
-    return SlopType.list([SlopType.symbol("splice-unquote"), form]);
+    return SlopType.list([spliceUnquote, form]);
   },
   ",": (form) => {
-    return SlopType.list([SlopType.symbol("unquote"), form]);
+    return SlopType.list([unquote, form]);
   },
   "@" : (form) => {
-    return SlopType.list([SlopType.symbol("splice"), form]);
+    return SlopType.list([splice, form]);
+  },
+  "\'," : (form) => {
+    return SlopType.list([quote, SlopType.list([unquote, form])]);
   }
- 
 }
+
 
 function error(message, token) {
   const location = token ? ` [ line ${token.line}, col ${token.col} ]` : "";

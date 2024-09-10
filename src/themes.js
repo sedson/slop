@@ -59,11 +59,11 @@ export const light = {
 };
 
 export const dark = {
-  background: "#000000",
-  focus: "#000000",
+  background: "#161616",
+  focus: "#121212",
   currentline: "#ffffff10",
-  selection: "#1a1a1a",
-  edge: "#1a1a1a",
+  selection: "#00f3",
+  edge: "#333",
   text: "#d8d8d8",
   comments: "#535353",
   red: "#e54126",
@@ -91,3 +91,20 @@ export const cooldark = {
   purple: "#795BA5",
   pink: "#a86fa8",
 };
+
+export const purple = {
+  background: "#201d2a",
+  focus: "#201d2a",
+  currentline: "#b042ff11",
+  selection: "#2c2839",
+  edge: "#6e658b55",
+  text: "#9992b0",
+  comments: "#625a7c",
+  red: "#9375f5",
+  orange: "#999",
+  yellow: "#dcaa4c",
+  green: "#d294ff",
+  blue: "#d294ff",
+  purple: "#795BA5",
+  pink: "#a86fa8",
+}

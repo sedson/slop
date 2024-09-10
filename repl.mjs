@@ -16,7 +16,6 @@ function error(msg) {
   console.log(ansi.red + msg + ansi.reset);
 }
 
-
 while (true) {
   const line = await rl.question("SLOP > ");
   try {
@@ -27,7 +26,6 @@ while (true) {
     }, undefined);
     context.set('$', res);
     console.log(slop.prettyPrint(res));
-
   } catch (e) {
     error(e.message);
   }

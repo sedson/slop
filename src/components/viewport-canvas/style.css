@@ -31,6 +31,8 @@
   padding: 1em;
   border-right: 1px solid var(--edge);
 }
+
 .button.selected {
-  background-color: var(--blue);
+  background-color: var(--text);
+  color: var(--background);
 }

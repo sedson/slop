@@ -19,7 +19,7 @@
 
 # Make some random params
 (def growth-factor (remap (rand) 0 1  1.001 1.003))
-(def x-freq        (remap (rand) 0 1 -10    10))
+(def x-freq        (remap (rand) 0 1 -10    10)) 
 (def y-freq        (remap (rand) 0 1 -10    10))
 
 (def col "rgba(230, 230, 230, 0.15)")

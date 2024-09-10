@@ -73,7 +73,8 @@ body {
 }
 
 .inline-list > *:hover {
-  background: var(--blue);
+  background: var(--text);
+  color: var(--background);
 }
 
 .underline {
@@ -84,15 +85,18 @@ body {
   width: 100%;
   height: 100%;
 }
+
 .pane {
   width: 100%;
   height: 100%;
   display: flex;
   overflow: hidden;
 }
+
 .h-split > .half {
   height: 100%;
 }
+
 .v-split {
   flex-direction: column;
 }
@@ -101,6 +105,7 @@ body {
   display: flex;
   height: 300px;
 }
+
 .flex-row {
   display: flex;
   flex-flow: row wrap;

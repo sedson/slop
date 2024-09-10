@@ -88,19 +88,19 @@
   color: var(--comments);
 }
 .depth-0 {
-  color: orange;
+  color: var(--orange);
 }
 .depth-1 {
-  color: yellow;
+  color: var(--yellow);
 }
 .depth-2 {
-  color: dodgerblue;
+  color: var(--blue);
 }
 .depth-3 {
-  color: lawngreen;
+  color: var(--green);
 }
 .depth-4 {
-  color: hotpink;
+  color: var(--pink);
 }
 
 .dynamic {
