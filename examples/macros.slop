@@ -1,0 +1,12 @@
+(defmacro each (elem collection & body)
+  (def tmp (gensym))
+  ~(do
+    (def ,tmp ,collection)
+    (def iter-fn (fn (,elem) (do ,@body)))
+    (for i (0 (len ,tmp))
+      (iter-fn (nth ,tmp i)))))
+
+(each thing (range 1 1001)
+  (print (+ thing thing)))
+
+'done

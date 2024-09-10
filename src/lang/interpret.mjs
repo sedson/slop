@@ -29,7 +29,7 @@ function error(message) {
  *     assignment.
  */ 
 function setWithDestructure(elements, context, isDef) {
-  const [ first, second ] = elements
+  const [first, second] = elements;
 
   const interpreted = interpret(second, context);
 
@@ -45,7 +45,7 @@ function setWithDestructure(elements, context, isDef) {
   }
 
   if (SlopType.isDict(first) && SlopType.isDict(interpreted)) {
-    for (let [key, sym] of SlopDict.entries(first)){
+    for (let [key, sym] of SlopDict.entries(first)) {
       setWithDestructure([sym, interpret[key]], context, isDef);
     }
     return interpreted;
@@ -53,7 +53,6 @@ function setWithDestructure(elements, context, isDef) {
 
   error("unexpected types in assignment " + prettyPrint(first, interpreted))
 }
-
 
 
 /**
@@ -83,7 +82,7 @@ function lambda(expr, context, name = undefined) {
  *     printing.
  * @return {function}
  */
-function macro (expr, context, name = undefined) {
+function macro(expr, context, name = undefined) {
   const [params, body] = SlopList.decap(expr);
   return SlopType.macro((...args) => {
     const localContext = new Context(context.env, params ?? [], args);
@@ -153,11 +152,11 @@ export const Core = {
   },
 
   for: (expr, context) => {
-    const [ [ label, control ], body ] = SlopList.split(expr, 2);
+    const [[label, control], body] = SlopList.split(expr, 2);
     let [start, end, by] = SlopList.map(control, (n) => interpret(n, context));
     by = by ?? 1;
 
-    if ( SlopType.isNil(start) || SlopType.isNil(end) || Math.sign(end - start) !== Math.sign(by)) {
+    if (SlopType.isNil(start) || SlopType.isNil(end) || Math.sign(end - start) !== Math.sign(by)) {
       error(`malformed list control: [let _ = ${start}; _ to ${end}; _ += ${by}`);
     }
     
@@ -269,11 +268,11 @@ export const Core = {
     }
   },
 
-  unquote: (expr, context, ) => {
+  unquote: (expr, context,) => {
     error("unquote only valid inside quasiquote")
   },
 
-  "splice-unquote" : (expr, context) => {
+  "splice-unquote": (expr, context) => {
     error("splice-unquote only valid inside quasiquote")
   }
 };
@@ -315,7 +314,7 @@ export function interpret(expression, context) {
   }
 
   if (!SlopType.isList(expression)) {
-    error(`unnhandled non-list case: ${expression}` );
+    error(`unnhandled non-list case: ${expression}`);
   }
 
   if (!SlopList.len(expression)) {

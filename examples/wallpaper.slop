@@ -1,0 +1,61 @@
+(def pi 3.14159265)
+(def tau (* pi 2))
+
+(def [w h] [2560 1664])
+(def cnvs (Canvas.new w h))
+
+# map val from [minIn:maxIn] to [minOut:maxOut]
+(defn remap [val minIn maxIn minOut maxOut]
+  (+ (* (/ (- val minIn) (- maxIn minIn)) (- maxOut minOut)) minOut))
+
+# wrap list access with a fallback default value
+(defn nth-default (data ndx)
+  (cond ((>= ndx data.length) (last data))
+        (else (nth data ndx))))
+
+# make a vector-wise version of a math function with
+# the function and its logical default (0 for +/-, 1 for * ...)
+(defn vector-wise (func)
+  (fn (a b)
+    (map a (fn (elem ndx) (func elem (nth-default b ndx))))))
+
+# component-wise vector multiplication
+(def v* (vector-wise * 1))
+(def v+ (vector-wise + 0))
+
+# cosine color palette cycling via Mike Bostock via IQ
+# https://observablehq.com/@mbostock/cosine-color-schemes
+(defn op (a b c d t)
+  # return a + b * cos(6.28318 *( c * t + d ));
+  (+ a (* b (cos (* tau (+ (* c t) d))))))
+
+
+(def mat [[0.5 0.5 0.5] 
+          [0.5 0.5 0.5] 
+          [1.0 1.0 0.5] 
+          [0.8 0.90 0.30]])
+
+(defn ramp (mat t)
+  (map (range 0 3)
+    (fn (i)
+      (def [a b c d] (map mat (fn (x) (nth x i))))
+      (op a b c d t))))
+
+(defn rgb255 (rgb01)
+  (def [r g b] (map rgb01 (fn (chan)
+    (floor (* chan 255)))))
+  (join "rgb(" r " " g " " b " / 1)"))
+
+
+(cnvs.fill "gray")
+(view cnvs)
+
+
+(def count 100)
+(for i (0 (+ count 1))
+  (def col (rgb255 (ramp mat (remap i 0 count 0 4))))
+  (def radius (remap i 0 count w 10))
+  (cnvs.ellipseStroke (/ w 2) (/ h 2) radius radius col 200))
+
+    
+(open-new cnvs)
