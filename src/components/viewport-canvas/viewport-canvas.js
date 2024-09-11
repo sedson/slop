@@ -2,13 +2,15 @@
  * @file Canvas viewer component.
  */
 
+const EDGE = 5_000;
+
 const markup = `
 <link rel="stylesheet" href="src/components/viewport-canvas/style.css">
 <div class="viewport">
   <canvas class="view-canvas"></canvas>
   <div class="buttons">
-    <div class="button mode selected" data-mode="PAN">MOVE</div>
-    <div class="button mode" data-mode="BRUSH">BRUSH</div>
+    <div class="button mode selected" data-mode="PAN">[M] MOVE</div>
+    <div class="button mode" data-mode="BRUSH">[B] BRUSH</div>
   </div>
 </div>
 `.trim();
@@ -27,6 +29,8 @@ class ViewportCanvas extends HTMLElement {
 
     this.viewport = this.root.querySelector('.viewport');
     this.viewCanvas = this.root.querySelector('.view-canvas');
+
+    /** @type {CanvasRenderingContext2D} */
     this.viewCtx = this.viewCanvas.getContext('2d');
     this.modeButtons = this.root.querySelectorAll('.button.mode');
 
@@ -34,7 +38,7 @@ class ViewportCanvas extends HTMLElement {
 
     this._listeners = [];
 
-    this.artboards = [];
+    this.artboards = new Map();
 
     this.state = {
       top: 0,
@@ -53,31 +57,57 @@ class ViewportCanvas extends HTMLElement {
         console.log(this.mode);
       })
     }
-
-    this.brushPoints = [];
   }
 
-  get width() { return this.viewport?.clientWidth ?? 0; }
-  get height() { return this.viewport?.clientHeight ?? 0; }
+  get width() { return this.viewCanvas?.clientWidth ?? 0; }
+  get height() { return this.viewCanvas?.clientHeight ?? 0; }
 
 
-  draw() {
+  draw(clear = false) {
     this.viewCanvas.width = this.width;
     this.viewCanvas.height = this.height;
 
     this.viewCtx.clearRect(0, 0, this.width, this.height);
 
+    this.viewCtx.translate(this.width / 2, this.height / 2);
     this.viewCtx.translate(this.state.left, this.state.top);
+
+    const debug = true;
+    if (debug) {
+      this.viewCtx.globalCompositeOperation = 'difference';
+      this.viewCtx.strokeStyle = '#fff3';
+      this.viewCtx.beginPath();
+      this.viewCtx.moveTo(0, -EDGE);
+      this.viewCtx.lineTo(0, EDGE);
+      this.viewCtx.stroke();
+      this.viewCtx.beginPath();
+      this.viewCtx.moveTo(-EDGE, 0);
+      this.viewCtx.lineTo(EDGE, 0);
+      this.viewCtx.stroke();
+      this.viewCtx.globalCompositeOperation = 'source-over';
+    }
+
     this.viewCtx.scale(this.state.scale, this.state.scale);
 
-    for (let artboard of this.artboards) {
-      this.viewCtx.drawImage(artboard.canvas, artboard.position[0], artboard.position[1]);
+    if (clear) {
+      return;
+    }
+
+    for (let [id, { canvas, position} ] of this.artboards) {
+
+      console.log(id, canvas, position)
+      const x = -canvas.w * 0 + position[0];
+      const y = -canvas.h * 0 + position[1];
+      this.viewCtx.drawImage(canvas.canvas, x, y);
     }
   }
 
   clear() {
-    this.artboards = [];
-    this.draw();
+    this.draw(true);
+  }
+
+  reset () {
+    this.artboards = new Map();
   }
 
 
@@ -138,15 +168,27 @@ class ViewportCanvas extends HTMLElement {
       if (!this._mouseDown) return;
 
       if (this.mode === ViewportModes.PAN) {
+
         this.state.left += e.movementX;
         this.state.top += e.movementY;
         this.draw();
+
       } else if (this.mode === ViewportModes.BRUSH) {
-        this.brushPoints.push([
-          (e.offsetX - this.state.left) / this.state.scale,
-          (e.offsetY - this.state.top) / this.state.scale,
-        ]);
-        window.dispatchEvent(new CustomEvent("brush"));
+
+
+        for (let [_, artboard] of this.artboards) {
+          let x  = e.offsetX - this.state.left - this.width / 2;
+          x /= this.state.scale;
+          x -= artboard.position[0];
+
+          let y  = e.offsetY - this.state.top - this.height / 2;
+          y /= this.state.scale;
+          y -= artboard.position[1];
+
+          artboard.brushPoints.push([x, y]);
+        }
+        
+        window.dispatchEvent(new CustomEvent('brush'));
         this.draw();
       }
     });
@@ -176,6 +218,28 @@ class ViewportCanvas extends HTMLElement {
     this.state.left += x;
     this.state.top += y;
     this.draw();
+  }
+
+
+  brushPoints(id) {
+    if (this.artboards.has(id)) {
+      return this.artboards.get(id).brushPoints;
+    }
+    return [];
+  }
+
+
+  add (canvas, x, y) {
+    const id = canvas.id;
+    if (this.artboards.has(id)) {
+      this.artboards.get(id).position = [ x, y ];
+    } else {
+      this.artboards.set(id, {
+        canvas,
+        position: [x, y],
+        brushPoints: [],
+      });
+    }
   }
 
   setMode(mode) {

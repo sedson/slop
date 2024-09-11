@@ -9,11 +9,6 @@
 }
 
 @font-face {
-  font-family: Olivetti;
-  src: url('/fonts/Px437_OlivettiThin_8x16.ttf') format('truetype');
-}
-
-@font-face {
   font-family: JetBrains;
   src: url('/fonts/JetBrainsMono-Light.woff2') format('woff2');
 }
@@ -35,13 +30,12 @@ body {
   background: var(--background);
   width: 100vw;
   height: 100vh;
-  font-family: Recursive, monospace;
-  padding-top: 3rem;
+  font-family: JetBrains, monospace;
+  padding-top: 2.5rem;
 }
   
 .menu-bar {
-  height: 3rem;
-  border-bottom: var(--line);
+  height: 2.5rem;
   color: var(--text);
   position: fixed;
   top: 0;
@@ -51,21 +45,24 @@ body {
   display: flex;
   flex-flow: row;
   align-items: center;
+  background-color: var(--background);
+  border-bottom: var(--line);
+  padding: 0 0.5em;
+  font-size: 0.9rem;
 }
 
 .inline-list {
   list-style: none;
   display: flex;
   flex-flow: row;
-  height: 100%;
 }
 
 .inline-list > * {
-  height: 100%;
-  padding: 0 1em;
   display: flex;
   align-items: center;
-  border-right: var(--line);;
+  padding: 0.2em 1em;
+  background: rgb(from var(--text) r g b / 0.2);
+  margin: 1px;
 }
 
 .inline-list * {

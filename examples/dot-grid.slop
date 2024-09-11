@@ -11,8 +11,8 @@
             (cnvs.ellipse cx cy radius radius color))))
 
 
-(def cnvs (Canvas.new 1024 1024))
-(def cnvs2 (Canvas.new 1024 1024))
+(def cnvs (make-canvas 1024 1024))
+(def cnvs2 (make-canvas 1024 1024))
 
 (fill-canvas cnvs "hotpink")
 

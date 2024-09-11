@@ -2,7 +2,7 @@
 (def tau (* pi 2))
 
 (def [w h] [2560 1664])
-(def cnvs (Canvas.new w h))
+(def cnvs (->canvas w h))
 
 # map val from [minIn:maxIn] to [minOut:maxOut]
 (defn remap [val minIn maxIn minOut maxOut]
@@ -56,6 +56,3 @@
   (def col (rgb255 (ramp mat (remap i 0 count 0 4))))
   (def radius (remap i 0 count w 10))
   (cnvs.ellipseStroke (/ w 2) (/ h 2) radius radius col 200))
-
-    
-(open-new cnvs)

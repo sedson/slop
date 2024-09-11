@@ -21,7 +21,7 @@
 
 
 (defn stripe-canvas (vertical)
-  (-> (Canvas.new w h)
+  (-> (->canvas w h)
       (fn (x) (x.fill "white"))
       (fn (x) (stripe x stripe-size "black" vertical))
       (fn (x) (x.blur blur-radius))))

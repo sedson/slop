@@ -13,7 +13,7 @@
   (remap (rand) 0 1 mn mx))
 
 (def cnvs 
-  (-> (Canvas.new 1024 1024)
+  (-> (->canvas 1024 1024)
       (fx (x.fill (hsl 126 21 41)))))
 
 
@@ -30,8 +30,7 @@
   (def brush-col (hsl (+ 737 hue-jitter) 33 62))
   (def radius (clamp (+ 33 size-jitter) 0 1000)) 
   (def [x y] pt)
-  # (cnvs.ellipse x y radius radius brush-col)
-  1
+  (cnvs.ellipse x y radius radius brush-col)
 )
 
 (for-each viewport.brushPoints brush-B)

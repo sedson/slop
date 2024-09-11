@@ -1,26 +1,25 @@
 import * as slop from "./lang/index.mjs";
 import * as themes from "./themes.js";
-import { Canvas } from "./canvas.js";
+import { Canvas, CanvasPool } from "./canvas.js";
 import { CodeEditor } from "./components/code-editor/code-editor.js";
 
 // Import the the to-js compiler extensions.
 import "./lang/extensions/to-js.mjs";
 
-const THEME = themes.purple;
+const THEME = themes.xcodeDark;
 
 const imagesBySource = (window.imagesBySource = {});
 const files = (window.files = []);
 
-if (window) {
-  window.slop = slop;
-}
+const pool = new CanvasPool();
+window.pool = pool;
 
 function ctx(editor = null, viewport = null) {
   // Add lisp to the scope.
   const scope = Object.assign({}, slop.lib);
 
   if (editor) {
-    // Add lisp to the scope.
+
     Object.assign(scope, {
       print: (...items) => {
         items.forEach((item) => editor.print(slop.prettyPrint(item)));
@@ -32,21 +31,15 @@ function ctx(editor = null, viewport = null) {
 
     Object.assign(scope, {
       // Add the canvas stuff to the scope.
-      Canvas: Canvas,
-      "->Canvas": (...args) => new Canvas(...args),
-      "make-canvas": (width, height, label) => {
-        return new Canvas(width, height, label);
-      },
+      "->canvas": (w, h) => pool.create(w, h),
+      "make-canvas": (w, h) => pool.create(w, h),
 
       blend: (mode, a, b, alpha) => Canvas.blend(mode, a, b, alpha),
 
       // View a canvas.
-      view: (canvas, x = 0, y = 0) => {
+      view: (canvas, x = (-canvas.w / 2), y = (-canvas.h / 2)) => {
         if (viewport) {
-          viewport.artboards.push({
-            canvas: canvas.canvas,
-            position: [x, y],
-          });
+          viewport.add(canvas, x, y);
         }
       },
 
@@ -122,6 +115,7 @@ window.addEventListener("DOMContentLoaded", () => {
   themes.applyTheme(THEME, document.documentElement, editor, viewport);
 
   const evalAll = (useLog = true) => {
+    pool.reset();
     viewport.clear();
 
     const src = editor.text;

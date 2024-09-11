@@ -8,7 +8,7 @@
 # random rgb string
 (defn chan [] (floor (* (rand) 256)))
 (defn rand-col []
-  (join "rgb(" (chan) ', (chan) ', (chan) ")"))
+  (join "rgb(" (chan) "," (chan) "," (chan) ")"))
 # fill a canvas with a color
 
 (defn fill [cnv col]
@@ -17,7 +17,7 @@
 
 # main canvas
 (def cnv (make-canvas 2048 2048))
-(fill cnv '#333)
+(fill cnv "#333")
 
 # concentric circles
 (def count 19)
@@ -26,6 +26,6 @@
   (cnv.ellipseStroke (* 0.5 cnv.w) (* 0.5 cnv.h) radius radius (rand-col) 92)))
 
 (view cnv)
-(open-new cnv)
+# (open-new cnv)
 
 (join "evaled sketch in " (- (now) start) " ms.")

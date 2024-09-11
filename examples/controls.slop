@@ -13,8 +13,8 @@
 (def bg (rgb 87 38 182))
 (def fg (hsl 180 92 65))
 
-(def radius (clamp 181 0 w))
+(def radius (clamp 174 0 w))
 
-(view (-> (Canvas.new w h)
+(view (-> (make-canvas w h)
           (fn (x) (x.fill bg))
           (fn (x) (x.ellipse (/ w 2) (/ h 2) radius radius fg))))

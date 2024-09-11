@@ -2,6 +2,7 @@
  * @file Provide basic library functions for the tiny lisp.
  */ 
 import { SlopType } from "./types.mjs";
+import { uuid } from "../uuid.js";
 
 const A = 16807;
 const MOD = (2 ** 32) - 1;
@@ -19,26 +20,6 @@ export const prng = {
   'seed': (num) => prng._prng = PRNG(num),
   'rand': () => prng._prng(),
 };
-
-const CHARS = 'abcdefghijfklmnopqrstuvwxyzABCDEFGHIJFKLMNOPQRSTUVWXYZ0123456789_@!';
-const buffer = new Uint8Array(128);
-let index = buffer.byteLength;
-
-function fillBuffer () {
-  crypto.getRandomValues(buffer);
-  index = 0;
-}
-
-function uuid (length = 6) {
-  if (index + length >= buffer.byteLength) fillBuffer();
-  let id = '';
-  while(id.length < length) {
-    id += CHARS[buffer[index] % CHARS.length];
-    ++ index;
-  }
-  return id;
-}
-
 
 export const utils = {
   'join': (...args) => { 
