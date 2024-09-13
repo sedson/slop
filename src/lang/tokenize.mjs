@@ -1,13 +1,31 @@
-import { TokenType, token, Token } from "./token.mjs";
+// @ts-check
+/**
+ * @file Slop tokenizer.
+ */
+
+import { SlopToken, Token } from "./token.mjs";
 import { is, Reader } from "./parsing-utils.mjs";
+
+const charMap = new Map([
+  ["(", SlopToken.enum.L_PAREN],
+  ["[", SlopToken.enum.L_BRACKET],
+  ["{", SlopToken.enum.L_BRACE],
+  [")", SlopToken.enum.R_PAREN],
+  ["]", SlopToken.enum.R_BRACKET],
+  ["}", SlopToken.enum.R_BRACE],
+]);
+
 
 /**
  * Split the code source string into tokens.
  * @param {string} input The source.
- * @param {array<Token>} An array of tokens.
+ * @return {Token[]}
  */
 export function tokenize(input) {
+  
   let reader = new Reader(input);
+  
+  /** @type {Token[]} */
   let tokens = [];
 
   let line = 0;
@@ -27,11 +45,14 @@ export function tokenize(input) {
     return reader.grab(tokenStart + offset, reader.loc - offset);
   };
 
-  const push = (type, val, str) => {
-    tokens.push(
-      token(type, val, str, [tokenStart, reader.loc], line, colStart)
-    );
-  };
+  /**
+   * @param {import("./token.mjs").TokenType} type The token type.
+   * @param {any} val The value of the token.
+   * @return {Token}
+   */
+  const token = (type, val, str = '', depth = 0) => {
+    return new Token(type, val, str || grab(), [tokenStart, reader.loc], line, colStart, depth);
+  }
 
   while (!reader.done()) {
     tokenStart = reader.loc;
@@ -42,57 +63,20 @@ export function tokenize(input) {
       while (!is.linebreak(peek()) && !reader.done()) {
         next();
       }
-      const t = token(
-        TokenType.COMMENT,
-        grab(),
-        grab(),
-        [tokenStart, reader.loc],
-        line,
-        colStart
-      );
-      tokens.push(t);
+      tokens.push(token(SlopToken.enum.COMMENT, grab()));
       continue;
     }
 
     if (is.leftDelim(char)) {
       parenDepth += 1;
-      const type = is.leftParen(char)
-        ? TokenType.L_PAREN
-        : is.leftBrace(char)
-        ? TokenType.L_BRACE
-        : TokenType.L_BRACKET;
-
-      const t = token(
-        type,
-        grab(),
-        char,
-        [tokenStart, reader.loc],
-        line,
-        colStart
-      );
-      t.depth = parenDepth;
-      tokens.push(t);
+      const type = charMap.get(char) ?? SlopToken.enum.L_PAREN;
+      tokens.push(token(type, char, char, parenDepth));
       continue;
     }
 
     if (is.rightDelim(char)) {
-      const type = is.rightParen(char)
-        ? TokenType.R_PAREN
-        : is.rightBrace(char)
-        ? TokenType.R_BRACE
-        : TokenType.R_BRACKET;
-
-      const t = token(
-        type,
-        grab(),
-        char,
-        [tokenStart, reader.loc],
-        line,
-        colStart
-      );
-
-      t.depth = parenDepth;
-      tokens.push(t);
+      const type = charMap.get(char) ?? SlopToken.enum.R_PAREN;
+      tokens.push(token(type, char, char, parenDepth));
       parenDepth -= 1;
       continue;
     }
@@ -110,7 +94,7 @@ export function tokenize(input) {
         next();
       }
       next();
-      push(TokenType.STR, grab(1), grab());
+      tokens.push(token(SlopToken.enum.STR, grab(1)));
       continue;
     }
 
@@ -118,7 +102,7 @@ export function tokenize(input) {
       while (is.special(peek())) {
         next();
       }
-      push(TokenType.SPECIAL, grab(), grab());
+      tokens.push(token(SlopToken.enum.SPECIAL, grab()));
       continue;
     }
     
@@ -126,7 +110,7 @@ export function tokenize(input) {
       while (is.word(peek()) && !reader.done()) {
         next();
       }
-      push(TokenType.KEY, grab(), grab());
+      tokens.push(token(SlopToken.enum.KEY, grab()));
       continue;
     }
 
@@ -134,7 +118,8 @@ export function tokenize(input) {
       while (is.number(peek()) && !reader.done()) {
         next();
       }
-      push(TokenType.NUM, Number.parseFloat(grab()), grab());
+      const val = Number.parseFloat(grab());
+      tokens.push(token(SlopToken.enum.NUM, val));
       continue;
     }
 
@@ -145,7 +130,8 @@ export function tokenize(input) {
         while (is.number(peek()) && !reader.done()) {
           next();
         }
-        push(TokenType.NUM, Number.parseFloat(grab()), grab());
+        const val = Number.parseFloat(grab());
+        tokens.push(token(SlopToken.enum.NUM, val));
         continue;
       }
     }
@@ -154,11 +140,10 @@ export function tokenize(input) {
       next();
     }
 
-    push(TokenType.SYMBOL, grab(), grab());
+    tokens.push(token(SlopToken.enum.SYMBOL, grab()));
   }
 
-  tokens.push(
-    token(TokenType.EOF, "", "", [reader.loc, reader.loc], line, col)
-  );
+  const EOF = new Token(SlopToken.enum.EOF, "", "", [reader.loc, reader.loc], line, col, 0);
+  tokens.push(EOF);
   return tokens;
 }

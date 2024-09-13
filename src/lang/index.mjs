@@ -1,7 +1,8 @@
+// @ts-check
 /**
  * @file A lisp dialect.
  */
-import { TokenType } from "./token.mjs";
+import { SlopToken } from "./token.mjs";
 import { SlopType } from "./types.mjs";
 import { Context } from "./context.mjs";
 import { tokenize } from "./tokenize.mjs";
@@ -26,7 +27,7 @@ for (const [key, val] of Object.entries(lib)) {
 }
 
 export {
-  TokenType,
+  SlopToken,
   SlopType,
   Context,
   tokenize,
@@ -46,7 +47,7 @@ export const keywords = Object.keys({ ...Core, ...SpecialWords });
 
 /**
  * Read source text and return a tokens array and a syntax tree.
- * @param {string}
+ * @param {string} source
  */
 export function read(source) {
   const tokens = tokenize(source);

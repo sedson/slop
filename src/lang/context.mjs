@@ -2,6 +2,9 @@
  * @file The context/env functionality for lisp programs to run in.
  */
 
+/**
+ * @param {string} message
+ */ 
 function error(message) {
   throw new Error(`context - ${message}`);
 }
@@ -20,17 +23,16 @@ export class Context {
     for (let i = 0; i < params.length; i++) {
       if (params[i] == VARIADIC && params.length > i) {
         this.env[params[i + 1]] = args.slice(i);
-        console.log('VARIADIC', this.env)
         return;
       }
       this.env[params[i]] = args[i];
     }
   }
 
+
   /**
    * Get the value of id in the context.
    * @param {string} key The identifier to get.
-   * @param {string[]} subpath Nested subpath.
    * @return {any}
    */
   get(key) {
@@ -56,13 +58,13 @@ export class Context {
     return nestedVal;
   }
 
+
   /**
    * Set the value of id in the context.
-   * @param {string} id The identifier to set.
+   * @param {string} key The identifier to set.
    * @param {any} val The value to set.
-   * @param {boolean} Whether to treat the identifier as a variable or
-   *     constant binding.
-   * @param {string[]} subpath Nested subpath.
+   * @param {boolean} constant Whether to treat the identifier as a variable or
+   *     constant binding.   
    * @return {any} The value that was set.
    */
   set(key, val, constant = false) {
@@ -93,6 +95,7 @@ export class Context {
   }
 }
 
+
 /**
  * Search for a nested path in the object outer.
  * @param {object} outer The context to search in.
@@ -112,10 +115,12 @@ function nested(outer, path) {
   return [parent[path[path.length - 1]], parent];
 }
 
+
 /**
  * Set for a nested path in the object outer.
- * @param {object} outer The context to search in.
+ * @param {object} obj The context to search in.
  * @param {string[]} path The array of strings to search with.
+ * @param {any} value The value to set.
  * @return {[any, object]} A tuple where the first element is the asked for
  *     value or undefined. The second element is the direct parent which is
  *     helpful for binding 'this' if the value is a function.
@@ -134,10 +139,15 @@ function setNested(obj, path, value) {
 }
 
 
+/**
+ * From a ket like "outer.inner", return the array ["outer", ["inner"]]
+ * @param {string} key
+ * @returns {[string, string[]]}
+ */ 
 function parseKey(key) {
   if (key[0].match(DELIM)) {
-    return [key];
+    return [key, []];
   }
   const split = key.split(DELIM);
-  return [split.shift(), split];
+  return [split.shift() ?? '', split];
 }

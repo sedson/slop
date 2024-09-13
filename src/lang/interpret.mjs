@@ -1,6 +1,8 @@
+// @ts-check
 /**
  * @file Runtime interpreter for Slop.
  */
+
 import {
   SlopType,
   SlopList,
@@ -12,6 +14,9 @@ import { prettyPrint, SpecialWords, extensions } from "./index.mjs";
 import { Context } from "./context.mjs";
 
 
+/**
+ * @param {string} message
+ */ 
 function error(message) {
   throw new Error(`interpret - ${message}`);
 }
@@ -309,7 +314,6 @@ export function interpret(expression, context) {
   }
 
   if (SlopType.isVec(expression)) {
-    console.log('interpVec', (expression));
     return SlopList.map(expression, interpInCtx);
   }
 

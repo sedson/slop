@@ -6,7 +6,7 @@ import { CodeEditor } from "./components/code-editor/code-editor.js";
 // Import the the to-js compiler extensions.
 import "./lang/extensions/to-js.mjs";
 
-const THEME = themes.xcodeDark;
+const THEME = themes.purple;
 
 const imagesBySource = (window.imagesBySource = {});
 const files = (window.files = []);
@@ -108,6 +108,7 @@ window.addEventListener("DOMContentLoaded", () => {
   /** @type {CodeEditor} */
   const editor = document.getElementById("editor");
 
+  /** @type {Vis} */
   const viewport = (window.viewport = document.getElementById("viewport"));
   const importer = document.getElementById("file-import");
   const opener = document.getElementById("file-open");
@@ -216,7 +217,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (e.metaKey) {
       const [token, index] = editor.tokenAt(editor.caretPosition);
 
-      if (token.type === slop.TokenType.NUM) {
+      if (token.type === slop.SlopToken.enum.NUM) {
         const n = Date.now();
         const update = n - lastChange > threshTime;
         if (update) {

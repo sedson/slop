@@ -1,3 +1,5 @@
+//@ts-check
+
 /**
  * @file String tool helpers for the code editor.
  */
@@ -56,7 +58,7 @@ export function countLinebreaks(str) {
  * Get the next non-space character in a search string.
  * @param {string} str The search string.
  * @param {number} index The start index.
- * @return {[number, char]} The index of the non-space char, and what the 
+ * @return {[number, string]} The index of the non-space char, and what the 
  *     char was.
  */
 export function nextNonSpaceChar(str, index) {

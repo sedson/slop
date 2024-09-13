@@ -1,4 +1,4 @@
-import { TokenType } from "./token.mjs";
+import { SlopToken } from "./token.mjs";
 import { SlopType } from "./types.mjs";
 
 function isObj(any) {
@@ -20,8 +20,8 @@ export function prettyPrint(item) {
 
   if (item._customFormat) return item._customFormat();
 
-  if (TokenType.valid(item)) {
-    return TokenType.getString(item);
+  if (SlopToken.valid(item)) {
+    return SlopToken.getString(item);
   }
 
   if (SlopType.valid(item)) {

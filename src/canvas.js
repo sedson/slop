@@ -4,6 +4,8 @@
  */
 import { uuid } from "./uuid.js";
 
+
+/** */
 export const BlendModes = {
   default: 'source-over',
   multiply: 'multiply',
@@ -23,6 +25,7 @@ export const BlendModes = {
   luminosity: 'luminosity'
 };
 
+
 /**
  * @param {HTMLCanvasElement} canvas
  * @returns {CanvasRenderingContext2D}
@@ -37,14 +40,15 @@ function getContext(canvas) {
 
 
 export class Canvas {
+  
   /**
    * Create a new canvas. 
-   * @param {number} w The width
-   * @param {number} h The height
+   * @param {number} width The width
+   * @param {number} height The height
    */ 
-  constructor(w, h) {
-    this.w = w;
-    this.h = h;
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
     this.id = uuid();
 
     this.canvas = document.createElement('canvas');
@@ -52,10 +56,14 @@ export class Canvas {
     /** @type {CanvasRenderingContext2D} */
     this.ctx = getContext(this.canvas);
     
-    this.canvas.width = w;
-    this.canvas.height = h;
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
     this.filterString = '';
   }
+
+  get w () {return this.width};
+  get h() { return this.height };
+
 
   iteratePixels(fn) {
     const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
@@ -114,7 +122,7 @@ export class Canvas {
 
   fill(col) {
     this.ctx.fillStyle = col;
-    this.ctx.fillRect(0, 0, this.w, this.h);
+    this.ctx.fillRect(0, 0, this.width, this.height);
     return this;
   }
 
@@ -227,23 +235,30 @@ export class Canvas {
   }
 
   _customFormat() {
-    return `CANVAS [ ${this.w} by ${this.h} ]`;
+    return `CANVAS [ ${this.width} by ${this.height} ]`;
   }
 
   clear() {
-    this.ctx.clearRect(0, 0, this.w, this.h);
+    this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
+  /**
+   * @param {number} w
+   * @param {number} h
+   */
   resize(w, h) {
     console.log(`resized canvas ${this.id}`);
     this.canvas.width = w;
     this.canvas.height = h;
-    this.w = w; 
-    this.h = h;
+    this.width = w; 
+    this.height = h;
   }
 }
 
 
+/**
+ * A pool of a canvases. When drawing the 
+ */ 
 export class CanvasPool {
   /** @type {Canvas[]} */
   #canvases = [];
@@ -260,7 +275,7 @@ export class CanvasPool {
     if (this.#index < this.#canvases.length) {
       
       const canvas = this.#canvases[this.#index];
-      if (w !== canvas.w || h !== canvas.h) {
+      if (w !== canvas.width || h !== canvas.height) {
         canvas.resize(w , h);
       }
       this.#index += 1;

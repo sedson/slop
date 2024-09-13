@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * Runtime data types. Use JS Symbols for (ostensibly) faster comparison than 
  * strings and more clear semantics than numbers.
@@ -17,7 +19,7 @@ export const SlopTypeEnum = Object.freeze({
   UNKNOWN: Symbol("UNKNOWN"),
 });
 
-const sybmolToString = new Map(Object.entries(SlopTypeEnum).map(([k, v]) => [v, k]));
+const symbolToString = new Map(Object.entries(SlopTypeEnum).map(([k, v]) => [v, k]));
 
 const atomicTypes = [
   SlopTypeEnum.NIL,
@@ -28,18 +30,18 @@ const atomicTypes = [
   SlopTypeEnum.BOOL,
 ];
 
-
+/**
+ * @param {string} message
+ */ 
 function error(message) {
   throw new Error(`type error - ${message}`);
 }
 
-// Classes to use for type checking otherwise indistinguishable types from JS's 
-// perspective.
+
 export class SlopText extends String {}
 export class SlopSymbol extends SlopText {}
 export class SlopString extends SlopText {}
 export class SlopKey extends SlopText {}
-
 export class SlopVec extends Array {}
 export class SlopSplice extends Array {}
 
@@ -50,24 +52,25 @@ export class SlopSplice extends Array {}
 export class SlopType {
   /**
    * Get the string label for a SlopType.
-   * @param {Symbol} symbol A JS symbol.
+   * @param {symbol} symbol A JS symbol.
    * @return {string} Human readable string name of type.
    */
   static getString(symbol) {
-    return sybmolToString.has(symbol) ?
-      sybmolToString.get(symbol) :
-      sybmolToString.get(SlopType.UNKNOWN);
+    //@ts-ignore
+    return symbolToString.has(symbol) ?
+      symbolToString.get(symbol) :
+      symbolToString.get(SlopTypeEnum.UNKNOWN);
   }
 
   static enum = SlopTypeEnum;
 
   /**
    * Check if a symbol is a valid SlopType.
-   * @param {Symbol}
+   * @param {symbol} symbol
    * @return {boolean}
    */
   static valid(symbol) {
-    return sybmolToString.has(symbol);
+    return symbolToString.has(symbol);
   }
 
   /**

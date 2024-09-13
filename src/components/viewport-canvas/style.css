@@ -5,6 +5,7 @@
   background-size: 10px 10px;
   color: var(--text);
 }
+
 .viewport {
   width: 100%;
   height: 100%;
@@ -12,12 +13,14 @@
   display: flex;
   flex-flow: column;
 }
+
 .view-canvas {
   width: 100%;
-/*   height: 100%; */
+  height: calc(100% - 2.5rem);
   flex-grow: 10;
   border: none;
 }
+
 .buttons {
   display: flex;
   align-items: center;

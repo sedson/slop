@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * @file Provide basic library functions for the tiny lisp.
  */ 
@@ -72,7 +73,7 @@ export const math = {
   'sqrt': (a) => Math.sqrt(a),
   'floor': (a) => Math.floor(a),
   'round': (a) => Math.round(a),
-  'ciel': (a) => Math.ciel(a),
+  'ceil': (a) => Math.ceil(a),
   '%': (a, b) => a % b,
   '=': (a, b) => a === b,
   '>': (a, b) => a > b,

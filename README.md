@@ -1,4 +1,6 @@
 # SLOP
-## Sloppy Lisp, Okay Pictures
+## Silly Lisp, Okay Pictures
 
-A *very* work-in-progress Lisp in JS interpreter and editor geared towards doing stuff with and to images.
+A *very* work-in-progress Lisp in JS geared towards doing stuff with and to images.
+
+## Syntax

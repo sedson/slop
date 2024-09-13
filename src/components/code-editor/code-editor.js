@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * @file Code editor component. This is a silly idea, probably taken too far. A 
  * default HTML textarea is a somewhat workable editor, but does not support 
@@ -7,16 +8,21 @@
  * pointer-events set to none. With some css effort the text lines up perfect 
  * and the trick works. Scroll position, scroll height, etc. have to be 
  * manually matched as well.
+ *
+ * @typedef {import('../custom-component.js').Listener} Listener
+ * 
+ * @typedef {Object} Syntax
+ * @prop {((source: string) => Token[]) | undefined} tokenize A tokenizer function
+ * @prop {Set<string>} keywords A set of special key words
+ * @prop {string} comment The comment marker
+ * @prop {number} tabSize The number of spaced to use for tabs
+ * 
  */
 
+import { CustomComponent } from '../custom-component.js';
 import { highlight } from './highlight.js';
-import { tokenize } from './tokenize.js';
+import { Token } from '../../lang/token.mjs';
 import * as stringTools from './string-tools.js';
-
-// TODO : These key presses interact with undo uniquely. When/if I roll my own 
-// undo stack, these might go.
-const nonPrintingChars = new Set(['Tab', 'Meta', 'Shift', 'Control', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown']);
-
 
 const markup = `
 <link rel="stylesheet" href="src/components/code-editor/style.css">
@@ -28,43 +34,42 @@ const markup = `
 <div class="log"></div>
 `.trim();
 
+/**
+ * The SLOP editor.
+ */
+export class CodeEditor extends CustomComponent {
 
-export class CodeEditor extends HTMLElement {
+  captureKeys = true;
+  
   constructor() {
     super();
-    this.root = this.attachShadow({ mode: 'open' });
+    
     this.root.innerHTML = markup;
+    
+    this.source = /** @type {HTMLTextAreaElement} */ (this.root.querySelector('.source')),
+    this.display =  /** @type {HTMLDivElement} */ (this.root.querySelector('.display')),
+    this.displayText = /** @type {HTMLDivElement} */ (this.root.querySelector('.display-text')),
+    this.scrollFiller = /** @type {HTMLDivElement} */ (this.root.querySelector('.scroll-filler')),
+    this.log =  /** @type {HTMLDivElement} */ (this.root.querySelector('.log'))
 
-    this.source = this.root.querySelector('.source');
-    this.display = this.root.querySelector('.display');
-    this.displayText = this.root.querySelector('.display-text');
-    this.scrollFiller = this.root.querySelector('.scroll-filler');
-    this.log = this.root.querySelector('.log');
-
-    /**
-     * The registered key shortcuts.
-     * @type {Map<string, function>} 
-     */
-    this.keymap = new Map();
-
-    /**
-     * Keep a running list of listeners for cleanup hygiene.
-     * @private
-     */
-    this._listeners = [];
+    /** @type {Syntax} */
+    this.syntax = {
+      tokenize: undefined,
+      keywords: new Set(),
+      comment: '#',
+      tabSize: 2,
+    }
 
     /**
-     * The string to append on tab.
-     * @private
+     * @type {string}
      */
-    this._tabString = "  ";
+    this.tabString = stringTools.fillString(this.syntax.tabSize, " ");
 
     /**
      * The current size of the font in ems.
      * @type {number}
-     * @private
      */
-    this._fontSize = 1;
+    this.fontSize = 1;
 
     /**
      * If I replace the string in the text area then the browser chucks its undo
@@ -72,14 +77,7 @@ export class CodeEditor extends HTMLElement {
      * TODO
      * @private
      */
-    this._undoStack = [];
-
-    /**
-     * The list of line break locations.
-     * @type {number[]}
-     * @private
-     */
-
+    this.undoStack = [];
 
     /**
      * The array of the highlighted text.
@@ -93,30 +91,6 @@ export class CodeEditor extends HTMLElement {
      * @type {Token[]}
      */
     this.tokens = [];
-
-    /**
-     * For syntax highlighting. An object with a tokenize function and a 
-     * set of keywords.
-     */
-    this.syntax = {
-      tokenize: tokenize,
-      keywords: new Set(),
-      comment: '#',
-      tabSize: 2,
-    }
-  }
-
-
-  /**
-   * Add an event listener to the text area. Stash a reference to the listener
-   * to remove on cleanup.
-   * @param {string} event
-   * @param {function} callback
-   */
-  listen(target, event, callback) {
-    const listener = target.addEventListener(event, callback);
-    this._listeners.push(listener);
-    return listener;
   }
 
 
@@ -130,35 +104,27 @@ export class CodeEditor extends HTMLElement {
 
 
   /**
-   * Register a callback for any keystroke in the text area.
-   * @param {function} callback
-   */
-  oninput(callback) {
-    this.listen(this.source, 'input', callback);
-  }
-
-
-  /**
-   * Set up a key handler.
-   * @param {string} key The key combo. Like 'ctrl+r' or 'alt+shift+t'.
-   * @param {function} callback
-   * @param {boolean=true} preventDefault Whether to prevent default on the
-   *     event or not.
-   */
-  mapkey(key, callback, preventDefault = true) {
-    this.keymap.set(key, {
-      fn: callback,
-      preventDefault: preventDefault,
-    });
-  }
-
-
-  /**
    * The source text.
    * @type {string} 
    */
   get text() {
     return this.source.value;
+  }
+
+
+  connectedCallback () {
+    super.connectedCallback();
+
+    this.listen(this.source, 'scroll', () => this.#mirror());
+    this.listen(window, 'resize', () => this.#mirror());
+
+    // Firefox listens on the textarea itself.
+    this.listen(this.source, 'selectionchange', () => this.updateCaret());
+
+    // Other browsers listen on the document.
+    this.listen(document, 'selectionchange', () => this.updateCaret());
+
+    this.listen(this.source, 'input', () => this.update());
   }
 
 
@@ -169,14 +135,14 @@ export class CodeEditor extends HTMLElement {
   get trimmedText() {
     return this.source.value
       .split("\n")
-      .map((ln) => ln.trimRight())
+      .map((ln) => ln.trimEnd())
       .join("\n");
   }
 
 
   /**
    * The current selection. A [start, end] array.
-   * @type {number[]}
+   * @type {[number, number]}
    */
   get selection() {
     return [this.source.selectionStart, this.source.selectionEnd];
@@ -218,7 +184,7 @@ export class CodeEditor extends HTMLElement {
   /**
    * Get token containing the text offset ndx.
    * @param {number} ndx An index in the source string.
-   * @return {Token} The token data.
+   * @return {[Token|undefined, number]} The token data.
    */
   tokenAt(ndx) {
     let left = 0;
@@ -238,7 +204,7 @@ export class CodeEditor extends HTMLElement {
       }
     }
 
-    return [false, -1];
+    return [undefined, -1];
   }
 
 
@@ -261,65 +227,6 @@ export class CodeEditor extends HTMLElement {
       range.push(i);
     }
     return range;
-  }
-
-
-  /**
-   * Key event handler. 
-   * @private
-   */
-  _keys(e) {
-    const keys = [];
-    if (e.ctrlKey) keys.push('ctrl');
-    if (e.shiftKey) keys.push('shift');
-    if (e.altKey) keys.push('alt');
-    if (e.metaKey) keys.push('meta');
-
-    keys.push(e.key.toLowerCase());
-
-    const command = keys.join('+');
-
-    if (this.keymap.has(command)) {
-      this.keymap.get(command).fn(e);
-      if (this.keymap.get(command).preventDefault) {
-        e.preventDefault();
-      }
-    }
-
-    if (!nonPrintingChars.has(e.key) && !e.metaKey && !e.ctrlKey)
-      this._undoStack = [];
-
-    e.stopPropagation();
-  }
-
-
-  /**
-   * WebComponent mount handler. Set up all the default listeners.
-   */
-  connectedCallback() {
-    this.listen(this.source, 'keydown', (e) => this._keys(e));
-    this.listen(this.source, 'scroll', (e) => this._mirror(e));
-    this.listen(window, 'resize', (e) => this._mirror(e));
-
-    // Firefox listens on the textarea itself.
-    this.listen(this.source, 'selectionchange', (e) => this.updateCaret());
-
-    // Other browsers listen on the document.
-    this.listen(document, 'selectionchange', (e) => {
-      this.updateCaret();
-    });
-
-    this.listen(this.source, 'input', (e) => this.update());
-  }
-
-
-  /**
-   * WebComponent mount handler. Set up all the default listeners.
-   */
-  disconnectedCallback() {
-    for (let listener of this._listeners) {
-      this.source.removeEventListener(listener);
-    }
   }
 
 
@@ -354,7 +261,7 @@ export class CodeEditor extends HTMLElement {
    */
   load(name) {
     try {
-      const text = localStorage.getItem('text-' + name);
+      const text = localStorage.getItem('text-' + name) ?? '';
       this.source.value = text;
       this.raise('input');
     } catch (e) {
@@ -373,8 +280,8 @@ export class CodeEditor extends HTMLElement {
     line.classList.add('log-line');
     if (error) line.classList.add('error');
 
-    const time = new Date().toLocaleTimeString();
-    const timeSpan = document.createElement('span');
+    // const time = new Date().toLocaleTimeString();
+    // const timeSpan = document.createElement('span');
 
     line.innerText = text;
     this.log.append(line);
@@ -393,13 +300,10 @@ export class CodeEditor extends HTMLElement {
 
   /**
    * start of a custom undo handler.
-   * TODO
-   * @param {string} text The text.
-   * 
    */
   undo(e) {
-    if (this._undoStack.length) {
-      let last = this._undoStack.pop();
+    if (this.undoStack.length) {
+      let last = this.undoStack.pop();
       this.source.value = last.str;
       this.source.setSelectionRange(last.sel[0], last.sel[1]);
       this.raise('input');
@@ -411,11 +315,11 @@ export class CodeEditor extends HTMLElement {
   /**
    * Push current state onto the custom undo stack.
    */
-  _pushState() {
-    if (this._undoStack.length > 10) {
-      this._undoStack.shift();
+  #pushState() {
+    if (this.undoStack.length > 10) {
+      this.undoStack.shift();
     }
-    this._undoStack.push({
+    this.undoStack.push({
       sel: this.selection,
       str: this.text,
     });
@@ -425,10 +329,10 @@ export class CodeEditor extends HTMLElement {
   /**
    * Set the syntax for the editor.
    * @param {object} syntax The syntax.
-   * @param {(source: string) => Tokens[]} syntax.tokenize A tokenize function.
+   * @param {(source: string) => Token[]} syntax.tokenize A tokenize function.
    * @param {Set<string>} syntax.keywords A set of keywords.
    * @param {number} syntax.tabSize The number of spaces to indent lines
-   * @param {char} syntax.comment The string to use when commenting a line. 
+   * @param {string} syntax.comment The string to use when commenting a line. 
    */
   setSyntax(syntax) {
     this.syntax = syntax;
@@ -442,13 +346,13 @@ export class CodeEditor extends HTMLElement {
    * @void
    */
   indent(reverse = false) {
-    this._pushState();
+    this.#pushState();
     const selection = this.selection;
     const selectedLines = this.selectedLines;
 
     if (selection[0] === selection[1]) {
       // Indent one line and move the caret accordingly.
-      const [pos, offset] = this._indentLine(selectedLines[0], reverse);
+      const [pos, offset] = this.#indentLine(selectedLines[0], reverse);
       const caret = Math.max(pos, selection[0] + offset);
       this.source.setSelectionRange(caret, caret);
       this.raise('input');
@@ -460,7 +364,7 @@ export class CodeEditor extends HTMLElement {
 
     // Keep selection if it fits on one line.
     if (endLineNo === startLineNo) {
-      const [pos, offset] = this._indentLine(selectedLines[0], reverse);
+      const [pos, offset] = this.#indentLine(selectedLines[0], reverse);
       const newSelectionStart = Math.max(pos, selection[0] + offset);
       const newSelectionEnd = Math.max(pos, selection[1] + offset);
       this.source.setSelectionRange(newSelectionStart, newSelectionEnd);
@@ -474,7 +378,7 @@ export class CodeEditor extends HTMLElement {
     let firstLineOffset = 0;
 
     for (let i = 0; i < selectedLines.length; i++) {
-      const [, offset] = this._indentLine(selectedLines[i], reverse);
+      const [, offset] = this.#indentLine(selectedLines[i], reverse);
       if (i === 0)
         firstLineOffset = offset;
 
@@ -491,13 +395,12 @@ export class CodeEditor extends HTMLElement {
   /**
    * Single line indent helper.
    * @param {number} lineNo The line number to indent or de-indent.
-   * @param {reverse} reverse If true, de-indent the line.
+   * @param {boolean} reverse If true, de-indent the line.
    * @return {[number, number]} A tuple with elem 0: the text position at the 
    *     start of the indented line and elem 1: the total amount of chars
    *     added – negative number if removed.
-   * @private
    */
-  _indentLine(lineNo, reverse) {
+  #indentLine(lineNo, reverse) {
     const str = this.text;
     const lineStart = stringTools.lineStart(str, this.linebreaks[lineNo]);
 
@@ -509,7 +412,7 @@ export class CodeEditor extends HTMLElement {
       this.source.value = str.slice(0, lineStart) + str.slice(lineStart + backShiftAmt);
       return [lineStart, -backShiftAmt];
     } else {
-      this.source.value = str.slice(0, lineStart) + this._tabString + str.slice(lineStart);
+      this.source.value = str.slice(0, lineStart) + this.tabString + str.slice(lineStart);
       return [lineStart, this.syntax.tabSize];
     }
   }
@@ -520,13 +423,13 @@ export class CodeEditor extends HTMLElement {
    * @void
    */
   comment() {
-    this._pushState();
+    this.#pushState();
     const selection = this.selection;
     const selectedLines = this.selectedLines;
 
     // Comment one line and move the caret accordingly.
     if (selection[0] === selection[1]) {
-      const [line, pos, offset] = this._commentLine(selectedLines[0]);
+      const [line, pos, offset] = this.#commentLine(selectedLines[0]);
       let caret = selection[0];
       if (caret >= pos) {
         caret = Math.max(line, caret + offset);
@@ -541,7 +444,7 @@ export class CodeEditor extends HTMLElement {
 
     // Keep selection if it fits on one line.
     if (endLineNo === startLineNo) {
-      const [line, pos, offset] = this._commentLine(selectedLines[0]);
+      const [line, pos, offset] = this.#commentLine(selectedLines[0]);
       let newStart = selection[0];
       let newEnd = selection[1];
 
@@ -584,7 +487,7 @@ export class CodeEditor extends HTMLElement {
     // in each line.
     for (let i = 0; i < selectedLines.length; i++) {
       const [, , offset] = allCommented ?
-        this._commentLine(selectedLines[i]) : this._commentLine(selectedLines[i], depth);
+        this.#commentLine(selectedLines[i]) : this.#commentLine(selectedLines[i], depth);
 
       if (i === 0) firstLineOffset += offset;
       totalOffset += offset;
@@ -609,9 +512,8 @@ export class CodeEditor extends HTMLElement {
    *     at the start of the commented line, elem 1: the text index where the 
    *     comment token was added or removed, and elem 2: the total amount of 
    *     chars added – negative number if removed
-   * @private
    */
-  _commentLine(lineNo, forceStart = -1) {
+  #commentLine(lineNo, forceStart = -1) {
     const str = this.text;
     const lineStart = str.lastIndexOf('\n', this.linebreaks[lineNo] - 1) + 1;
     let lineEnd = str.indexOf('\n', this.linebreaks[lineNo] + 1);
@@ -646,7 +548,7 @@ export class CodeEditor extends HTMLElement {
   /**
    * Scroll match the highlighted div to the source text area.
    */
-  _mirror() {
+  #mirror() {
     this.scrollFiller.style.height = this.source.scrollHeight + 'px';
     this.display.scrollTop = this.source.scrollTop;
     this.display.scrollLeft = this.source.scrollLeft;
@@ -658,8 +560,8 @@ export class CodeEditor extends HTMLElement {
    * @param {number} amt The amount.
    */
   zoom(amt) {
-    this._fontSize += amt;
-    this.style.fontSize = this._fontSize + 'rem';
+    this.fontSize += amt;
+    this.style.fontSize = this.fontSize + 'rem';
   }
 
 
@@ -694,12 +596,12 @@ export class CodeEditor extends HTMLElement {
 
 
   replaceToken(tokenIndex, value, pushState = false, selectToken = true) {
-    if (tokenize < 0 || tokenIndex > this.tokens.length) {
+    if (tokenIndex < 0 || tokenIndex > this.tokens.length) {
       return;
     }
 
     if (pushState) {
-      this._pushState();
+      this.#pushState();
     }
 
     const str = this.text;

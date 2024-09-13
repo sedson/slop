@@ -2,7 +2,7 @@
  * @file Syntax highlighting for the code editor.
  */
 import * as stringTools from "./string-tools.js";
-import { TokenType } from "../../lang/token.mjs";
+import { SlopToken } from "../../lang/token.mjs";
 
 /**
  * Create a span
@@ -45,7 +45,7 @@ export function highlight(sourceString, tokens, keywords) {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
 
-    if (token.type === TokenType.EOF) continue;
+    if (token.type === SlopToken.enum.EOF) continue;
 
     // Make a new line.
     if (token.line !== lineNumber) {
@@ -67,7 +67,7 @@ export function highlight(sourceString, tokens, keywords) {
     }
 
     // Make a syntax highlighted span for the token.
-    const className = TokenType.getString(token.type).toLowerCase();
+    const className = SlopToken.getString(token.type).toLowerCase();
     const tokenSpan = span(sourceString.substring(...token.range), className);
 
     if (token.depth !== undefined) {

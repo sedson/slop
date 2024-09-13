@@ -1,19 +1,17 @@
+// @ts-check
 /**
  * @file Helpers for string parsing.
  */ 
-
-/**
- * String or array reader.
- */ 
+ 
 export class Reader {
   /** 
-   * @param {string|array} data 
+   * @param {string} data 
    */ 
   constructor(data) {
     this.data = data;
     this.loc = 0;
   }
-   
+  
   peek() { return this.data[this.loc]; }
   next() { return this.data[this.loc++]; }
   done() { return this.loc >= this.data.length; }
@@ -51,7 +49,6 @@ export const is = {
   dollar: (char) => char === '$',
   at: (char) => char === '@',
   tilde: (char) => char === '~',
-  colon: (char) => char === ':',
   dash: (char) => char === '-',
   letter: (char) => (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z'),
   word: (char) => !is.whitespace(char) &&

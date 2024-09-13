@@ -20,6 +20,8 @@
 
 (def cnv (->canvas w h 'MAIN))
 
+(/ 45 (+ 20)) 
+
 (print cnv)
 
 (cnv.fill bg)
