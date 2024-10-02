@@ -1,6 +1,6 @@
 # Slop
 
-Slop is a Lisp-based creative-coding tool. The two main parts of the project are a custom dialect of Lisp and a web-based environment to live-code graphics using that Lisp.
+Slop is a Lisp-inspired tool for creative coding. It combines a custom Lisp dialect with a web-based environment for live graphics programming.
 
 ![SLOP1](https://github.com/user-attachments/assets/75bc62cd-be3a-4a91-a344-688946c66786)
 
