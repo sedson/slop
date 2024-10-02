@@ -14,7 +14,21 @@ function PRNG (seed) {
     _seed = (A *_seed) % MOD;
     return (_seed - 1) / MOD;
   }
-} 
+}
+
+export const predicates = {
+  'nil?': form => SlopType.isNil(form),
+  'num?': form => SlopType.isNum(form),
+  'vec?': form => SlopType.isVec(form),
+  'list?' :form => SlopType.isList(form),
+  'dict?' :form => SlopType.isDict(form),
+  'list-like?' :form => SlopType.isListLike(form),
+  'fn?' : form => SlopType.isFn(form),
+  'key?' : form => SlopType.isKey(form),
+  'bool?' : form => SlopType.isBool(form),
+  'symbol?' : form => SlopType.isSymbol(form),
+  'string?' : form => SlopType.isString(form),
+}
 
 export const prng = {
   _prng: PRNG(1),
