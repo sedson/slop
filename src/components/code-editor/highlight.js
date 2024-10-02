@@ -70,7 +70,7 @@ export function highlight(sourceString, tokens, keywords) {
     const className = SlopToken.getString(token.type).toLowerCase();
     const tokenSpan = span(sourceString.substring(...token.range), className);
 
-    if (token.depth !== undefined) {
+    if (token.depth > -1) {
       tokenSpan.classList.add(`depth-${token.depth % 5}`);
     }
 

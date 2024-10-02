@@ -76,7 +76,7 @@ export class SlopType {
   /**
    * Get the Slop Type of Some value.
    * @param {any} val
-   * @return {SlopType}
+   * @return {symbol}
    */
   static getType(val) {
     if (SlopType.isNil(val)) return SlopTypeEnum.NIL;

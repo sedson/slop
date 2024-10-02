@@ -50,7 +50,7 @@ export function tokenize(input) {
    * @param {any} val The value of the token.
    * @return {Token}
    */
-  const token = (type, val, str = '', depth = 0) => {
+  const token = (type, val, str = '', depth = -1) => {
     return new Token(type, val, str || grab(), [tokenStart, reader.loc], line, colStart, depth);
   }
 

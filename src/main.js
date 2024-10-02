@@ -6,7 +6,7 @@ import { CodeEditor } from "./components/code-editor/code-editor.js";
 // Import the the to-js compiler extensions.
 import "./lang/extensions/to-js.mjs";
 
-const THEME = themes.purple;
+const THEME = themes.dark;
 
 const imagesBySource = (window.imagesBySource = {});
 const files = (window.files = []);

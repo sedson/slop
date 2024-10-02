@@ -1,6 +1,8 @@
 // @ts-check
 /**
  * @file Runtime interpreter for Slop.
+ *
+ * @typedef {any[]} Form
  */
 
 import {
@@ -25,7 +27,7 @@ function error(message) {
 /**
  * Bind a symbol in context. Handles destructuring. Used for the core functions 
  * 'def', 'var', and 'set'.
- * @param {array} elements A two-element array/list. The simplest example would 
+ * @param {Array} elements A two-element array/list. The simplest example would 
  *     be something like [a : Symbol, 400] - bind the value 400 to the symbol a.
  * @param {Context} context The parent context/scope
  * @param {boolean} isDef Flag for whether we are looking at a def call or

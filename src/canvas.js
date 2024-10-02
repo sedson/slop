@@ -239,6 +239,7 @@ export class Canvas {
   }
 
   clear() {
+    console.log('CLEAR', this.id, this.width);
     this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
@@ -247,11 +248,11 @@ export class Canvas {
    * @param {number} h
    */
   resize(w, h) {
-    console.log(`resized canvas ${this.id}`);
     this.canvas.width = w;
     this.canvas.height = h;
     this.width = w; 
     this.height = h;
+    this.clear();
   }
 }
 
@@ -278,7 +279,9 @@ export class CanvasPool {
       if (w !== canvas.width || h !== canvas.height) {
         canvas.resize(w , h);
       }
+      
       this.#index += 1;
+      canvas.clear();
       return canvas;
 
     } else {

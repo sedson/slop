@@ -107,4 +107,4 @@ export const purple = {
   blue: "#d294ff",
   purple: "#795BA5",
   pink: "#a86fa8",
-}
+};

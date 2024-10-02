@@ -9,7 +9,7 @@ import { tokenize } from "./tokenize.mjs";
 import { parse } from "./parse.mjs";
 import { interpret, Core } from "./interpret.mjs";
 import { prettyPrint } from "./pretty-print.mjs";
-import { utils, math, lists, prng } from "./lib.mjs";
+import { utils, math, lists, prng, predicates } from "./lib.mjs";
 
 export const SpecialWords = {
   nil: SlopType.nil(),
@@ -19,7 +19,7 @@ export const SpecialWords = {
   else: SlopType.bool(true),
 };
 
-export const lib = { ...utils, ...math, ...lists, ...prng };
+export const lib = { ...utils, ...math, ...lists, ...prng, ...predicates };
 for (const [key, val] of Object.entries(lib)) {
   if (val instanceof Function) {
     val.funcName = key;
