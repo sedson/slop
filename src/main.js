@@ -1,6 +1,6 @@
 //@ts-check
 import * as slop from "./lang/index.mjs";
-import { Canvas, CanvasPool } from "./canvas.js";
+import { Canvas, resetPool, } from "./canvas.js";
 import { CodeEditor } from "./components/code-editor/code-editor.js";
 import { ViewportCanvas } from "./components/viewport-canvas/viewport-canvas.js";
 // Import the the to-js compiler extensions.
@@ -11,8 +11,6 @@ import "./lang/extensions/to-js.mjs";
 const imagesBySource = (window.imagesBySource = {});
 const files = (window.files = []);
 
-const pool = new CanvasPool();
-window.pool = pool;
 
 /**
  * @param {CodeEditor|null} editor
@@ -37,8 +35,8 @@ function ctx(editor = null, viewport = null) {
 
     Object.assign(scope, {
       // Add the canvas stuff to the scope.
-      "->canvas": (w, h) => pool.create(w, h),
-      "make-canvas": (w, h) => pool.create(w, h),
+      "->canvas": (w, h) => Canvas.new(w, h),
+      "make-canvas": (w, h) => Canvas.new(w, h),
 
       blend: (mode, a, b, alpha) => Canvas.blend(mode, a, b, alpha),
 
@@ -120,7 +118,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // themes.applyTheme(themes.THEME, document.documentElement, editor, viewport);
 
   const evalAll = (useLog = true) => {
-    pool.reset();
+    resetPool();
     viewport.clear();
 
     const src = editor.text;

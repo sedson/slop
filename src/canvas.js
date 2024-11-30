@@ -3,7 +3,10 @@
  * @file Canvas wrapper utility.
  */
 import { uuid } from "./uuid.js";
+import { CanvasPool } from "./canvas-pool.js";
 
+const pool = new CanvasPool();
+export const resetPool = () => pool.reset();
 
 /** */
 export const BlendModes = {
@@ -40,12 +43,12 @@ function getContext(canvas) {
 
 
 export class Canvas {
-  
+
   /**
    * Create a new canvas. 
    * @param {number} width The width
    * @param {number} height The height
-   */ 
+   */
   constructor(width, height) {
     this.width = width;
     this.height = height;
@@ -55,13 +58,13 @@ export class Canvas {
 
     /** @type {CanvasRenderingContext2D} */
     this.ctx = getContext(this.canvas);
-    
+
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     this.filterString = '';
   }
 
-  get w () {return this.width};
+  get w() { return this.width };
   get h() { return this.height };
 
 
@@ -102,7 +105,7 @@ export class Canvas {
     const w = Math.max(a.w, b.w);
     const h = Math.max(a.h, b.h);
 
-    const newCanvas = new Canvas(w, h);
+    const newCanvas = pool.create(w, h);
     newCanvas.img(a, 0, 0);
     newCanvas.blend(BlendModes[mode]);
     newCanvas.alpha(alpha);
@@ -110,8 +113,8 @@ export class Canvas {
     return newCanvas;
   }
 
-  static new(w, h, label) {
-    return new Canvas(w, h, label);
+  static new(w, h) {
+    return pool.create(w, h);
   }
 
   rect(x, y, w, h, col) {
@@ -250,51 +253,9 @@ export class Canvas {
   resize(w, h) {
     this.canvas.width = w;
     this.canvas.height = h;
-    this.width = w; 
+    this.width = w;
     this.height = h;
     this.clear();
   }
 }
 
-
-/**
- * A pool of a canvases. When drawing the 
- */ 
-export class CanvasPool {
-  /** @type {Canvas[]} */
-  #canvases = [];
-
-  #index = 0;
-  
-  /**
-   * Create a new canvas and add it to the pool.
-   * @param {number} w The width
-   * @param {number} h The height
-   * @returns {Canvas}
-   */ 
-  create(w, h) {
-    if (this.#index < this.#canvases.length) {
-      
-      const canvas = this.#canvases[this.#index];
-      if (w !== canvas.width || h !== canvas.height) {
-        canvas.resize(w , h);
-      }
-      
-      this.#index += 1;
-      canvas.clear();
-      return canvas;
-
-    } else {
-
-      const canvas = Canvas.new(w, h, uuid(6));
-      this.#canvases.push(canvas)
-      this.#index += 1;
-      return canvas;
-
-    }
-  }
-
-  reset() {
-    this.#index = 0;
-  }
-}
