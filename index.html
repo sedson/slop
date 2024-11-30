@@ -10,6 +10,11 @@
   <script type="module" src="src/main.js" defer></script>
 </head>
 <body>
+  <script type="module">
+    import { THEME, applyTheme } from '/src/themes.js';
+    console.log('UM whay')
+    applyTheme(THEME, document.documentElement);
+  </script>
   <div class="menu-bar">
     <ul class="inline-list options">
       <li>SLOP</li>

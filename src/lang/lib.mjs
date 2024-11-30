@@ -1,33 +1,39 @@
 // @ts-check
 /**
  * @file Provide basic library functions for the tiny lisp.
- */ 
+ */
 import { SlopType } from "./types.mjs";
 import { uuid } from "../uuid.js";
 
 const A = 16807;
 const MOD = (2 ** 32) - 1;
 
-function PRNG (seed) {
+/**
+ * @param {number} seed
+ */
+function PRNG(seed) {
   let _seed = Math.abs(seed % MOD);
   return () => {
-    _seed = (A *_seed) % MOD;
+    _seed = (A * _seed) % MOD;
     return (_seed - 1) / MOD;
   }
 }
 
+/**
+ * @type {Record<string, (form: any) => boolean>}
+ */
 export const predicates = {
   'nil?': form => SlopType.isNil(form),
   'num?': form => SlopType.isNum(form),
   'vec?': form => SlopType.isVec(form),
-  'list?' :form => SlopType.isList(form),
-  'dict?' :form => SlopType.isDict(form),
-  'list-like?' :form => SlopType.isListLike(form),
-  'fn?' : form => SlopType.isFn(form),
-  'key?' : form => SlopType.isKey(form),
-  'bool?' : form => SlopType.isBool(form),
-  'symbol?' : form => SlopType.isSymbol(form),
-  'string?' : form => SlopType.isString(form),
+  'list?': form => SlopType.isList(form),
+  'dict?': form => SlopType.isDict(form),
+  'list-like?': form => SlopType.isListLike(form),
+  'fn?': form => SlopType.isFn(form),
+  'key?': form => SlopType.isKey(form),
+  'bool?': form => SlopType.isBool(form),
+  'symbol?': form => SlopType.isSymbol(form),
+  'string?': form => SlopType.isString(form),
 }
 
 export const prng = {
@@ -37,13 +43,13 @@ export const prng = {
 };
 
 export const utils = {
-  'join': (...args) => { 
+  'join': (...args) => {
     if (args.length === 1 && Array.isArray(args[0])) {
       return args[0].join('');
     }
     return args.join('');
   },
-  'join-c': (c ,...args) => {
+  'join-c': (c, ...args) => {
     if (args.length === 1 && Array.isArray(args[0])) {
       return args[0].join(c);
     }
@@ -133,7 +139,7 @@ export const lists = {
     ls.push(val);
     return val;
   },
-  'sum': (ls) => ls.reduce((a, b) => a + b, 0), 
+  'sum': (ls) => ls.reduce((a, b) => a + b, 0),
   'first': (ls) => ls[0] ?? null,
   'last': (ls) => ls[ls.length - 1] ?? null,
   'rest': (ls) => ls.slice(1),
@@ -145,8 +151,8 @@ export const lists = {
   },
   'has': (ls, member) => ls.indexOf(member) > -1,
   'fill-with': (len, val) => new Array(len).fill(val),
-  
-  '->' : (data, ...functions) => {
+
+  '->': (data, ...functions) => {
     let d = data;
     for (let f of functions) {
       if (Array.isArray(d)) {

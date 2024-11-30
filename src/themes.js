@@ -1,7 +1,6 @@
 /**
  * @file Themes for the editor.
  */
-
 export function applyTheme(theme, ...objects) {
   for (let [name, color] of Object.entries(theme)) {
     for (let obj of objects) {
@@ -11,27 +10,13 @@ export function applyTheme(theme, ...objects) {
 }
 
 export const xcodeDark = {
-  // main background
-  background: "#292a30",
-
-  // bg of element with focus
-  focus: "#292a30",
-
-  // bg of the current caret line
-  currentline: "#2f323955",
-
-  // user selection color
-  selection: "#0973eb",
-
-  // ui diving line color
-  edge: "#515153",
-
-  // text color
-  text: "#fcfcfc",
-
-  // comments
-  comments: "#7f8c99",
-
+  background: "#292a30",      // main background
+  focus: "#292a30",           // bg of element with focus
+  currentline: "#2f323955",   // bg of the current caret line
+  selection: "#0973eb",       // user selection color
+  edge: "#515153",            // ui diving line color
+  text: "#fcfcfc",            // text color
+  comments: "#7f8c99",        // comments
   red: "#ff806c",
   orange: "#cd9764",
   yellow: "#daca77",
@@ -108,3 +93,5 @@ export const purple = {
   purple: "#795BA5",
   pink: "#a86fa8",
 };
+
+export const THEME = cooldark;

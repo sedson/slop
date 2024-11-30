@@ -1,12 +1,12 @@
+//@ts-check
 import * as slop from "./lang/index.mjs";
-import * as themes from "./themes.js";
 import { Canvas, CanvasPool } from "./canvas.js";
 import { CodeEditor } from "./components/code-editor/code-editor.js";
-
+import { ViewportCanvas } from "./components/viewport-canvas/viewport-canvas.js";
 // Import the the to-js compiler extensions.
 import "./lang/extensions/to-js.mjs";
 
-const THEME = themes.dark;
+
 
 const imagesBySource = (window.imagesBySource = {});
 const files = (window.files = []);
@@ -14,6 +14,10 @@ const files = (window.files = []);
 const pool = new CanvasPool();
 window.pool = pool;
 
+/**
+ * @param {CodeEditor|null} editor
+ * @param {ViewportCanvas|null} viewport
+ */
 function ctx(editor = null, viewport = null) {
   // Add lisp to the scope.
   const scope = Object.assign({}, slop.lib);
@@ -21,13 +25,15 @@ function ctx(editor = null, viewport = null) {
   if (editor) {
 
     Object.assign(scope, {
-      print: (...items) => {
-        items.forEach((item) => editor.print(slop.prettyPrint(item)));
+      print: (/** @type {any[]} */ ...items) => {
+        items.forEach((item) => {
+          return editor.print(slop.prettyPrint(item));
+        });
         return items[items.length - 1];
       },
     });
 
-    if (viewport) scope.viewport = viewport;
+    if (viewport) Object.assign(scope, { viewport });
 
     Object.assign(scope, {
       // Add the canvas stuff to the scope.
@@ -105,15 +111,13 @@ for (let word of Object.keys(slop.extensions)) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  /** @type {CodeEditor} */
-  const editor = document.getElementById("editor");
+  const editor = /** @type {CodeEditor} */ (document.getElementById("editor"));
+  const viewport = /** @type {ViewportCanvas} */ (document.getElementById("viewport"));
 
-  /** @type {Vis} */
-  const viewport = (window.viewport = document.getElementById("viewport"));
   const importer = document.getElementById("file-import");
   const opener = document.getElementById("file-open");
 
-  themes.applyTheme(THEME, document.documentElement, editor, viewport);
+  // themes.applyTheme(themes.THEME, document.documentElement, editor, viewport);
 
   const evalAll = (useLog = true) => {
     pool.reset();
@@ -123,19 +127,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const env = ctx(editor, viewport);
     const { ok, tree, result, error, tokens } = slop.run(src, env);
 
-    // console.log(JSON.stringify(tree, (key, val) => {
-    //   if (key === 'type') return lisp.Type.getString(val);
-    //   if (key === 'range') return;
-    //   return val;
-    // }, 2));
-
     if (ok) {
       viewport.draw();
       if (useLog) editor.print(slop.prettyPrint(result));
     } else {
       editor.error(error);
       console.error(error);
-
     }
   };
 
@@ -147,20 +144,24 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // Eval on control+enter
-  editor.mapkey("ctrl+enter", evalAll);
+  editor.mapkey("meta+enter", () => evalAll(true));
+  editor.mapkey("meta+e", () => evalAll(true));
 
-  // Eval when an imahge reloads.
-  window.addEventListener("image-load", evalAll);
+  // Eval when an image reloads.
+  window.addEventListener("image-load", () => evalAll(true));
 
   editor.mapkey("tab", () => editor.indent());
   editor.mapkey("shift+tab", () => editor.indent(true));
+  editor.mapkey("meta+]", () => editor.indent());
+  editor.mapkey("meta+[", () => editor.indent(true));
   editor.mapkey("meta+z", (e) => editor.undo(e), false);
   editor.mapkey("ctrl+-", () => editor.zoom(-0.1));
   editor.mapkey("ctrl+=", () => editor.zoom(+0.1));
   editor.mapkey("meta+s", () => editor.save("MAIN"));
-  editor.mapkey("ctrl+c", () => editor.clearLog());
+  editor.mapkey("meta+k", () => editor.clearLog());
   editor.mapkey("meta+/", () => editor.comment());
-  editor.mapkey("ctrl+i", () => importer.click());
+  editor.mapkey("meta+i", () => importer?.click());
+  editor.mapkey("meta+o", () => opener?.click());
 
   viewport.mapkey("ctrl+-", () => viewport.zoom(-0.1));
   viewport.mapkey("ctrl+=", () => viewport.zoom(+0.1));
@@ -183,8 +184,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  opener.addEventListener("change", (e) => {
-    console.log(e);
+  opener?.addEventListener("change", (e) => {
     for (let file of e.target.files) {
       const reader = new FileReader();
       reader.readAsText(file);
@@ -196,7 +196,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("save-text").addEventListener("click", (e) => {
+  document.getElementById("save-text")?.addEventListener("click", () => {
     const blob = new Blob([editor.text], { type: "text/plain" });
 
     // Create a URL for the Blob
@@ -213,11 +213,12 @@ window.addEventListener("DOMContentLoaded", () => {
   let lastChange = Date.now();
   const threshTime = 60;
 
-  editor.listen(editor, "mousemove", (e) => {
+  editor.listen(editor, "mousemove", (event) => {
+    let e = /** @type {MouseEvent} */ (event);
     if (e.metaKey) {
       const [token, index] = editor.tokenAt(editor.caretPosition);
 
-      if (token.type === slop.SlopToken.enum.NUM) {
+      if (token?.type === slop.SlopToken.enum.NUM) {
         const n = Date.now();
         const update = n - lastChange > threshTime;
         if (update) {
@@ -241,7 +242,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  window.addEventListener("brush", (e) => {
+  window.addEventListener("brush", () => {
     evalAll(false);
   });
 

@@ -12,6 +12,7 @@
 
 import { CustomComponent } from "../custom-component.js";
 import { Canvas } from "../../canvas.js";
+import { THEME, applyTheme } from '/src/themes.js';
 
 /**
  * Modes/tools for the viewport
@@ -39,10 +40,11 @@ const markup = `
 `.trim();
 
 
-class ViewportCanvas extends CustomComponent {
+export class ViewportCanvas extends CustomComponent {
   constructor() {
     super();
     this.root.innerHTML = markup;
+    applyTheme(THEME, this);
 
     this.viewport = /** @type {HTMLCanvasElement} */ (this.root.querySelector('.viewport'));
     this.canvas = /** @type {HTMLCanvasElement} */ (this.root.querySelector('.view-canvas'));

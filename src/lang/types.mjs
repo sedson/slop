@@ -32,7 +32,7 @@ const atomicTypes = [
 
 /**
  * @param {string} message
- */ 
+ */
 function error(message) {
   throw new Error(`type error - ${message}`);
 }
@@ -47,8 +47,8 @@ export class SlopSplice extends Array {}
 
 
 /**
- * SlopType name space has methods for 
- */ 
+ * SlopType name space has methods for managing types.
+ */
 export class SlopType {
   /**
    * Get the string label for a SlopType.
@@ -92,67 +92,112 @@ export class SlopType {
     return SlopTypeEnum.UNKNOWN;
   }
 
+  /**
+   * @param {undefined} val
+   */
   static isNil(val) {
     return val === undefined;
   }
 
+  /**
+   * @param {any} val
+   */
   static isBool(val) {
     return typeof val === "boolean";
   }
 
+  /**
+   * @param {any} val
+   */
   static isFalse(val) {
     return val === false;
   }
 
+  /**
+   * @param {any} val
+   */
   static isSymbol(val) {
     return val?.constructor === SlopSymbol;
   }
 
+  /**
+   * @param {any} val
+   */
   static isString(val) {
     return (
       val?.constructor === SlopString ||
-      (typeof val === "string" && 
+      (typeof val === "string" &&
         !(SlopType.isKey(val) || SlopType.isSymbol(val)))
     );
   }
 
+  /**
+   * @param {string} val
+   */
   static isKey(val) {
     return val?.constructor === SlopKey;
   }
 
+  /**
+   * @param {any} val
+   */
   static isNum(val) {
     return typeof val === "number";
   }
 
+  /**
+   * @param {any[]} val
+   */
   static isVec(val) {
     return val?.constructor === SlopVec;
   }
 
+  /**
+   * @param {any[]} val
+   */
   static isList(val) {
     return Array.isArray(val) && !SlopType.isVec(val);
   }
 
+  /**
+   * @param {{ constructor: ObjectConstructor; }} val
+   */
   static isDict(val) {
     return val?.constructor === Object;
   }
 
+  /**
+   * @param {any[]} val
+   */
   static isListLike(val) {
     return SlopType.isVec(val) || SlopType.isList(val);
   }
 
+  /**
+   * @param {any} val
+   */
   static isFn(val) {
-    return typeof val ==="function" && !val.isMacro;
+    return typeof val === "function" && !val.isMacro;
   }
 
+  /**
+   * @param {any} val
+   */
   static isMacro(val) {
-    return typeof val ==="function" && val.isMacro;
+    return typeof val === "function" && val.isMacro;
   }
 
-  static isAtom (val) {
+  /**
+   * @param {any} val
+   */
+  static isAtom(val) {
     return atomicTypes.includes(SlopType.getType(val));
   }
 
-  static isTruthy (val) {
+  /**
+   * @param {any} val
+   */
+  static isTruthy(val) {
     return (!(SlopType.isNil(val) || SlopType.isFalse(val)));
   }
 
@@ -160,6 +205,9 @@ export class SlopType {
     return undefined;
   }
 
+  /**
+   * @param {any} b
+   */
   static bool(b) {
     if (typeof b !== "boolean") {
       error("expected boolean to construct boolean");
@@ -168,8 +216,7 @@ export class SlopType {
   }
 
   static symbol(s) {
-    if (!s instanceof String) {
-      console.log(s);
+    if (typeof s !== 'string') {
       error("expected string to construct symbol " + s);
     }
     return new SlopSymbol(s);
@@ -196,6 +243,9 @@ export class SlopType {
     return n;
   }
 
+  /**
+   * @param {any[]} xs
+   */
   static list(xs) {
     if (!Array.isArray(xs)) {
       error("expected array to construct list");
@@ -203,6 +253,9 @@ export class SlopType {
     return SlopList.flatten(xs);
   }
 
+  /**
+   * @param {any[]} xs
+   */
   static vec(xs) {
     if (!Array.isArray(xs)) {
       error("expected array to construct vector");
@@ -217,6 +270,9 @@ export class SlopType {
     return SlopSplice.from(SlopList.flatten(xs));
   }
 
+  /**
+   * @param {any} map
+   */
   static dict(map) {
     if (map == null || map?.constructor !== Object) {
       error("expected plain JS object to construct dict");
@@ -224,6 +280,10 @@ export class SlopType {
     return map;
   }
 
+  /**
+   * @param {Function} fn
+   * @param {string|undefined} name
+   */
   static fn(fn, name = undefined) {
     if (typeof fn !== "function") {
       error("expected function to construct function");
@@ -234,8 +294,12 @@ export class SlopType {
     return fn;
   }
 
+  /**
+   * @param {Function} fn
+   * @param {string|undefined} name
+   */
   static macro(fn, name = undefined) {
-    if(typeof fn !== "function") {
+    if (typeof fn !== "function") {
       error("expected function to construct macro");
     }
     if (name) {

@@ -19,16 +19,16 @@ export const ParseMacros = {
   "~": (form) => {
     return SlopType.list([quasi, form]);
   },
-   ",@": (form) => {
+  ",@": (form) => {
     return SlopType.list([spliceUnquote, form]);
   },
   ",": (form) => {
     return SlopType.list([unquote, form]);
   },
-  "@" : (form) => {
+  "@": (form) => {
     return SlopType.list([splice, form]);
   },
-  "\'," : (form) => {
+  "\',": (form) => {
     return SlopType.list([quote, SlopType.list([unquote, form])]);
   }
 }
@@ -69,8 +69,6 @@ function expression(reader) {
     return list(reader, SlopToken.enum.R_PAREN);
   }
 
-  // TODO: remove me once we've implemented square brackets as a reader macro.
-  // For now, it's just the same as round parens.
   if (match(reader, SlopToken.enum.L_BRACKET)) {
     if (match(reader, SlopToken.enum.R_BRACKET)) {
       return SlopType.vec([]);
@@ -105,7 +103,7 @@ function list(reader, closeToken, asVec = false) {
   while (!match(reader, closeToken)) {
     let expr = expression(reader);
     if (expr !== null) {
-      elements.push(expr);  
+      elements.push(expr);
     }
   }
 
@@ -122,29 +120,29 @@ function list(reader, closeToken, asVec = false) {
 function atom(reader) {
   const token = reader.next();
   switch (token.type) {
-  case SlopToken.enum.SYMBOL:
-    return SlopType.symbol(token.val, token.subpath);
+    case SlopToken.enum.SYMBOL:
+      return SlopType.symbol(token.val, token.subpath);
 
-  case SlopToken.enum.KEY:
-    return SlopType.key(token.val);
+    case SlopToken.enum.KEY:
+      return SlopType.key(token.val);
 
-  case SlopToken.enum.NUM:
-    return SlopType.num(token.val);
+    case SlopToken.enum.NUM:
+      return SlopType.num(token.val);
 
-  case SlopToken.enum.STR:
-    return SlopType.string(token.val);
+    case SlopToken.enum.STR:
+      return SlopType.string(token.val);
 
-  // Because, undefined is nil in slop world, use the value null to signal 
-  // dropping as expression from the eval tree.
-  case SlopToken.enum.COMMENT:
-  case SlopToken.enum.EOF:
-    return null;
+    // Because, undefined is nil in slop world, use the value null to signal 
+    // dropping as expression from the eval tree.
+    case SlopToken.enum.COMMENT:
+    case SlopToken.enum.EOF:
+      return null;
 
-  default:
-    const typeStr = SlopToken.enum.getString(token.type);
-    error(
-      `unexpected type: ${typeStr}, line: ${token.line}, col: ${token.col}`
-    );
+    default:
+      const typeStr = SlopToken.enum.getString(token.type);
+      error(
+        `unexpected type: ${typeStr}, line: ${token.line}, col: ${token.col}`
+      );
   }
 }
 
@@ -157,7 +155,7 @@ function dict(reader) {
   const data = {};
   let isKey = true;
   let key = null;
-  
+
   while (!match(reader, SlopToken.enum.R_BRACE)) {
     if (isKey) {
       key = expression(reader);

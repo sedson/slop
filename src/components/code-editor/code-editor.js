@@ -23,6 +23,8 @@ import { CustomComponent } from '../custom-component.js';
 import { highlight } from './highlight.js';
 import { Token } from '../../lang/token.mjs';
 import * as stringTools from './string-tools.js';
+import { THEME, applyTheme } from '../../themes.js';
+
 
 const markup = `
 <link rel="stylesheet" href="src/components/code-editor/style.css">
@@ -40,17 +42,18 @@ const markup = `
 export class CodeEditor extends CustomComponent {
 
   captureKeys = true;
-  
+
   constructor() {
     super();
-    
+
     this.root.innerHTML = markup;
-    
-    this.source = /** @type {HTMLTextAreaElement} */ (this.root.querySelector('.source')),
-    this.display =  /** @type {HTMLDivElement} */ (this.root.querySelector('.display')),
-    this.displayText = /** @type {HTMLDivElement} */ (this.root.querySelector('.display-text')),
-    this.scrollFiller = /** @type {HTMLDivElement} */ (this.root.querySelector('.scroll-filler')),
-    this.log =  /** @type {HTMLDivElement} */ (this.root.querySelector('.log'))
+    applyTheme(THEME, this);
+
+    this.source = /** @type {HTMLTextAreaElement} */ (this.root.querySelector('.source'));
+    this.display =  /** @type {HTMLDivElement} */ (this.root.querySelector('.display'));
+    this.displayText = /** @type {HTMLDivElement} */ (this.root.querySelector('.display-text'));
+    this.scrollFiller = /** @type {HTMLDivElement} */ (this.root.querySelector('.scroll-filler'));
+    this.log =  /** @type {HTMLDivElement} */ (this.root.querySelector('.log'));
 
     /** @type {Syntax} */
     this.syntax = {
@@ -112,7 +115,7 @@ export class CodeEditor extends CustomComponent {
   }
 
 
-  connectedCallback () {
+  connectedCallback() {
     super.connectedCallback();
 
     this.listen(this.source, 'scroll', () => this.#mirror());
@@ -299,7 +302,8 @@ export class CodeEditor extends CustomComponent {
 
 
   /**
-   * start of a custom undo handler.
+   * custom undo handler.
+   * @param {{ preventDefault: () => void; }} e
    */
   undo(e) {
     if (this.undoStack.length) {
