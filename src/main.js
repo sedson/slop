@@ -41,9 +41,9 @@ function ctx(editor = null, viewport = null) {
       blend: (mode, a, b, alpha) => Canvas.blend(mode, a, b, alpha),
 
       // View a canvas.
-      view: (canvas, x = (-canvas.w / 2), y = (-canvas.h / 2)) => {
+      view: (/** @type {Canvas} */ canvas, x = 0, y = 0) => {
         if (viewport) {
-          viewport.add(canvas, x, y);
+          viewport.add(canvas, x - (canvas.w / 2), y - (canvas.h / 2));
         }
       },
 

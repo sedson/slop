@@ -12,7 +12,7 @@
 
 import { CustomComponent } from "../custom-component.js";
 import { Canvas } from "../../canvas.js";
-import { THEME, applyTheme } from '/src/themes.js';
+import { THEME, applyTheme } from '../../themes.js';
 
 /**
  * Modes/tools for the viewport
@@ -27,7 +27,7 @@ const EDGE = 5_000;
 
 /**
  * The markup for the Custom Component.
- */ 
+ */
 const markup = `
 <link rel="stylesheet" href="src/components/viewport-canvas/style.css">
 <div class="viewport">
@@ -49,7 +49,7 @@ export class ViewportCanvas extends CustomComponent {
     this.viewport = /** @type {HTMLCanvasElement} */ (this.root.querySelector('.viewport'));
     this.canvas = /** @type {HTMLCanvasElement} */ (this.root.querySelector('.view-canvas'));
     this.ctx = /** @type {CanvasRenderingContext2D} */ (this.canvas.getContext('2d'));
-    
+
     /** @type {HTMLElement[]} */
     this.modeButtons = Array.from(this.root.querySelectorAll('.button.mode'))
       .filter(x => x instanceof HTMLElement);
@@ -88,13 +88,13 @@ export class ViewportCanvas extends CustomComponent {
     const debug = true;
     if (debug) {
       this.ctx.globalCompositeOperation = 'difference';
-      this.ctx.strokeStyle = "#ffffff33";
+      this.ctx.strokeStyle = "#ffffff";
       this.ctx.beginPath();
-      this.ctx.moveTo(0, -EDGE);
+      this.ctx.moveTo(0, EDGE);
       this.ctx.lineTo(0, EDGE);
       this.ctx.stroke();
       this.ctx.beginPath();
-      this.ctx.moveTo(-EDGE, 0);
+      this.ctx.moveTo(EDGE, 0);
       this.ctx.lineTo(EDGE, 0);
       this.ctx.stroke();
       this.ctx.globalCompositeOperation = 'source-over';
@@ -106,9 +106,9 @@ export class ViewportCanvas extends CustomComponent {
       return;
     }
 
-    for (let [_, { canvas, position }] of this.artboards) {
-      const x = -canvas.w * 0 + position[0];
-      const y = -canvas.h * 0 + position[1];
+    for (let [, { canvas, position }] of this.artboards) {
+      const x = position[0];
+      const y = position[1];
       this.ctx.drawImage(canvas.canvas, x, y);
     }
   }
@@ -124,7 +124,7 @@ export class ViewportCanvas extends CustomComponent {
 
   connectedCallback() {
     super.connectedCallback();
-  
+
     this.listen(this.canvas, 'pointerdown', () => {
       this._mouseDown = true;
     });
@@ -134,7 +134,6 @@ export class ViewportCanvas extends CustomComponent {
     });
 
     this.listen(window, 'pointermove', (e) => {
-      console.log('move')
 
       if (!(e instanceof MouseEvent)) return;
       if (!this._mouseDown) return;
@@ -159,7 +158,7 @@ export class ViewportCanvas extends CustomComponent {
 
           artboard.brushPoints.push([x, y]);
         }
-        
+
         window.dispatchEvent(new CustomEvent('brush'));
         this.draw();
       }
@@ -177,7 +176,7 @@ export class ViewportCanvas extends CustomComponent {
   /**
    * Set the zoom multiplier.
    * @param {number} amt
-   */ 
+   */
   zoom(amt) {
     this.scale += amt;
     this.draw();
@@ -188,7 +187,7 @@ export class ViewportCanvas extends CustomComponent {
    * Pan the viewport
    * @param {number} x
    * @param {number} y
-   */ 
+   */
   pan(x, y) {
     this.left += x;
     this.top += y;
@@ -198,7 +197,7 @@ export class ViewportCanvas extends CustomComponent {
 
   /**
    * @param {string} id
-   */ 
+   */
   brushPoints(id) {
     return this.artboards.get(id)?.brushPoints ?? [];
   }
@@ -209,7 +208,7 @@ export class ViewportCanvas extends CustomComponent {
    * @param {Canvas} canvas
    * @param {number} x The x offset for canvas display.
    * @param {number} y The y offset for canvas display.
-   */ 
+   */
   add(canvas, x = 0, y = 0) {
     const id = canvas.id;
     let artboard = this.artboards.get(id);
@@ -228,7 +227,7 @@ export class ViewportCanvas extends CustomComponent {
   /**
    * Set the viewport mode.
    * @param {ViewportMode | string} mode
-   */ 
+   */
   setMode(mode) {
     if (!(mode in ViewportModes)) return;
     this.mode = mode;

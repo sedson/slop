@@ -110,6 +110,7 @@ export class Canvas {
     newCanvas.blend(BlendModes[mode]);
     newCanvas.alpha(alpha);
     newCanvas.img(b, 0, 0);
+    newCanvas.alpha(1);
     return newCanvas;
   }
 
